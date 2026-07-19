@@ -268,9 +268,212 @@ input{font-family:inherit}
 .mapdot:hover{filter:brightness(1.25)}
 .maplabel{pointer-events:none;font-weight:700}
 
+/* ================================================================
+   인트로 — 3컷 스크롤 후킹 시퀀스
+   신호(signature): 좌측의 "보고 주기 눈금"이 컷을 넘어갈수록
+   성글게(연 1회) → 촘촘하게(실시간) 채워지며, 플랫폼이 만드는
+   정보 시차의 변화를 시각적으로 체감하게 만든다.
+================================================================ */
+#introWrap{
+  position:fixed;inset:0;z-index:200;
+  height:100vh;overflow-y:scroll;overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  background:linear-gradient(160deg,var(--bg-top) 0%,#0D3050 45%,var(--bg-bot) 100%);
+}
+#introWrap.leaving{animation:introOut .55s ease forwards}
+@keyframes introOut{to{opacity:0;transform:scale(1.02);pointer-events:none}}
+.intro-skip{
+  position:fixed;top:18px;right:20px;z-index:210;
+  border:1.5px solid var(--line);border-radius:999px;padding:8px 16px;
+  font-size:12.5px;font-weight:800;color:var(--ink-soft);background:rgba(10,26,48,.55);
+  backdrop-filter:blur(6px);transition:.15s;
+}
+.intro-skip:hover{color:var(--primary);border-color:var(--primary)}
+.intro-progress{
+  position:fixed;top:0;left:0;right:0;height:3px;z-index:210;
+  background:rgba(255,255,255,.08);
+}
+.intro-progress i{
+  display:block;height:100%;width:33.333%;background:var(--primary);
+  transition:width .35s ease;
+}
+.intro-cadence{
+  position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:205;
+  display:flex;flex-direction:column;gap:7px;align-items:flex-start;
+}
+.intro-cadence .tick{
+  width:20px;height:2px;background:var(--line);border-radius:2px;
+  transition:background .35s ease,width .35s ease;
+}
+.intro-cadence .tick.on{background:var(--primary);width:34px}
+.intro-cadence .clabel{
+  font-size:10.5px;color:var(--ink-soft);font-weight:800;letter-spacing:.06em;
+  margin-top:2px;writing-mode:vertical-rl;text-orientation:mixed;
+}
+@media(max-width:640px){.intro-cadence{display:none}}
+
+.intro-panel{
+  height:100vh;width:100%;scroll-snap-align:start;scroll-snap-stop:always;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  padding:0 24px;overflow:hidden;
+}
+.intro-inner{max-width:640px;width:100%;text-align:left}
+.intro-eyebrow{
+  font-size:12px;font-weight:800;color:var(--primary);letter-spacing:.18em;
+  opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease;
+}
+.intro-panel.in-view .intro-eyebrow{opacity:1;transform:none}
+.intro-headline{
+  font-size:clamp(26px,4.6vw,46px);font-weight:900;color:#fff;line-height:1.28;
+  margin-top:14px;letter-spacing:-.02em;
+  opacity:0;transform:translateY(20px);transition:opacity .7s ease .08s,transform .7s ease .08s;
+}
+.intro-panel.in-view .intro-headline{opacity:1;transform:none}
+.intro-headline em{
+  font-style:normal;color:var(--primary);
+  background:linear-gradient(180deg,transparent 62%,rgba(245,200,75,.28) 62%);
+}
+.intro-body{
+  margin-top:18px;font-size:15.5px;color:var(--ink-soft);line-height:1.8;max-width:520px;
+  opacity:0;transform:translateY(20px);transition:opacity .7s ease .18s,transform .7s ease .18s;
+}
+.intro-panel.in-view .intro-body{opacity:1;transform:none}
+.intro-visual{
+  margin-top:30px;
+  opacity:0;transform:translateY(24px);transition:opacity .7s ease .26s,transform .7s ease .26s;
+}
+.intro-panel.in-view .intro-visual{opacity:1;transform:none}
+
+/* 컷 1 — 정보 시차: 낡은 서류 스탬프가 흐릿해지는 연출 */
+.stamp-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.stamp{
+  border:2px solid #6E86A6;color:#9FB4CC;border-radius:10px;
+  padding:9px 16px;font-weight:800;font-size:13px;letter-spacing:.04em;
+  transform:rotate(-4deg);opacity:.55;
+  animation:stampFade 3.6s ease-in-out infinite;
+}
+@keyframes stampFade{0%,100%{opacity:.28}50%{opacity:.62}}
+.stamp-arrow{color:var(--ink-soft);font-size:20px}
+.stamp.now{
+  border-color:var(--primary);color:var(--primary);transform:rotate(2deg);
+  opacity:1;animation:none;box-shadow:0 0 0 0 rgba(245,200,75,.4);
+  animation:pulseRing 2.2s ease-out infinite;
+}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(245,200,75,.35)}70%{box-shadow:0 0 0 14px rgba(245,200,75,0)}100%{box-shadow:0 0 0 0 rgba(245,200,75,0)}}
+
+/* 컷 2 — 원단위 랭킹: 막대가 채워지는 연출 */
+.rank-demo{display:flex;flex-direction:column;gap:9px;max-width:360px}
+.rd-row{display:grid;grid-template-columns:74px 1fr 44px;align-items:center;gap:10px}
+.rd-name{font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.rd-track{height:14px;border-radius:7px;background:#0E2544;overflow:hidden}
+.rd-fill{height:100%;border-radius:7px;width:0;background:linear-gradient(90deg,#3E7DC0,#6FB0E8);transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.intro-panel.in-view .rd-fill{width:var(--w)}
+.rd-row.gold .rd-fill{background:linear-gradient(90deg,#E0A428,#FFD86B)}
+.rd-row.gold .rd-name{color:var(--gold);font-weight:800}
+.rd-pct{font-size:11.5px;color:var(--ink-soft);text-align:right}
+
+/* 컷 3 — 종합 거점: 아이콘 카드가 순차적으로 떠오름 */
+.hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:460px}
+.hub-card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px 10px;text-align:center;
+  opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;
+}
+.intro-panel.in-view .hub-card{opacity:1;transform:none}
+.intro-panel.in-view .hub-card:nth-child(1){transition-delay:.32s}
+.intro-panel.in-view .hub-card:nth-child(2){transition-delay:.42s}
+.intro-panel.in-view .hub-card:nth-child(3){transition-delay:.52s}
+.hub-card .hi{font-size:22px}
+.hub-card .ht{font-size:11.5px;font-weight:800;color:#fff;margin-top:6px}
+
+.intro-scrolldown{
+  position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:var(--ink-soft);font-size:11px;font-weight:700;letter-spacing:.06em;
+  animation:bounceDown 1.8s ease-in-out infinite;
+}
+@keyframes bounceDown{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
+.intro-scrolldown .arr{font-size:16px;color:var(--primary)}
+
+.intro-cta{
+  margin-top:34px;
+  opacity:0;transform:translateY(20px);transition:opacity .7s ease .5s,transform .7s ease .5s;
+}
+.intro-panel.in-view .intro-cta{opacity:1;transform:none}
+.intro-cta .pill-btn{font-size:16px;padding:14px 30px}
+.intro-cta .hint{margin-top:12px;font-size:12px;color:var(--ink-soft)}
+
+#appWrap{display:none}
 </style>
 </head>
 <body>
+
+<!-- ================= 인트로: 3컷 후킹 시퀀스 ================= -->
+<div id="introWrap">
+  <div class="intro-progress"><i id="introBar"></i></div>
+  <button class="intro-skip" onclick="finishIntro()">건너뛰기 →</button>
+  <div class="intro-cadence" id="introCadence">
+    <div class="tick" data-i="0"></div>
+    <div class="tick" data-i="1"></div>
+    <div class="tick" data-i="2"></div>
+    <div class="tick" data-i="3"></div>
+    <div class="tick" data-i="4"></div>
+    <div class="tick" data-i="5"></div>
+    <div class="clabel" id="cadenceLabel">보고 주기: 연 1회</div>
+  </div>
+
+  <!-- 컷 1 : 문제 — 정보 시차 -->
+  <section class="intro-panel" data-panel="0">
+    <div class="intro-inner">
+      <div class="intro-eyebrow">KUCE — 대학 탄소중립 정보공개 플랫폼</div>
+      <h1 class="intro-headline">우리 대학의 탄소배출,<br><em>1년 전 숫자</em>로 알고 계신가요?</h1>
+      <p class="intro-body">기존 행정 시스템은 연 1회, 이미 지나간 사후 보고서로만 확인됩니다. 정작 줄여야 할 순간에는 아무도 숫자를 보지 못합니다.</p>
+      <div class="intro-visual stamp-row">
+        <div class="stamp">2023년 보고</div>
+        <div class="stamp-arrow">→</div>
+        <div class="stamp">2024년 보고</div>
+        <div class="stamp-arrow">→</div>
+        <div class="stamp now">2026년, 지금은?</div>
+      </div>
+    </div>
+    <div class="intro-scrolldown"><span>아래로 스크롤</span><span class="arr">⌄</span></div>
+  </section>
+
+  <!-- 컷 2 : 해결 — 투명한 원단위 랭킹 -->
+  <section class="intro-panel" data-panel="1">
+    <div class="intro-inner">
+      <div class="intro-eyebrow">TRANSPARENT · CAMPUS-WIDE</div>
+      <h1 class="intro-headline">전국 대학의 데이터를<br><em>1인당·면적당</em> 기준으로 공개합니다</h1>
+      <p class="intro-body">규모가 다른 대학도 공정하게 비교할 수 있도록, 원단위 지표로 환산한 객관적인 랭킹을 투명하게 보여줍니다. 우리 학교의 위치를 숫자로 확인하세요.</p>
+      <div class="intro-visual rank-demo">
+        <div class="rd-row"><span class="rd-name">A대학</span><div class="rd-track"><div class="rd-fill" style="--w:38%"></div></div><span class="rd-pct">1위</span></div>
+        <div class="rd-row gold"><span class="rd-name">우리 학교</span><div class="rd-track"><div class="rd-fill" style="--w:57%"></div></div><span class="rd-pct">6위</span></div>
+        <div class="rd-row"><span class="rd-name">C대학</span><div class="rd-track"><div class="rd-fill" style="--w:82%"></div></div><span class="rd-pct">14위</span></div>
+      </div>
+    </div>
+    <div class="intro-scrolldown"><span>아래로 스크롤</span><span class="arr">⌄</span></div>
+  </section>
+
+  <!-- 컷 3 : 비전 — 종합 기후위기 대응 거점 -->
+  <section class="intro-panel" data-panel="2">
+    <div class="intro-inner">
+      <div class="intro-eyebrow">REAL-TIME · ALL-IN-ONE</div>
+      <h1 class="intro-headline">실시간 모니터링을 넘어,<br><em>기후위기 대응 거점</em>으로</h1>
+      <p class="intro-body">건물에너지관리시스템(BEMS)형 실시간 모니터링을 지향하며, 랭킹 너머 커뮤니티·ESG 채용·교육 콘텐츠까지 한 곳에서 연결합니다.</p>
+      <div class="intro-visual hub-grid">
+        <div class="hub-card"><div class="hi">📡</div><div class="ht">실시간<br>BEMS 모니터링</div></div>
+        <div class="hub-card"><div class="hi">🤝</div><div class="ht">대학 간<br>커뮤니티</div></div>
+        <div class="hub-card"><div class="hi">🎓</div><div class="ht">ESG 채용 ·<br>교육 콘텐츠</div></div>
+      </div>
+      <div class="intro-cta">
+        <button class="pill-btn" onclick="finishIntro()">지금 시작하기 →</button>
+        <div class="hint">우리 학교를 검색하면 바로 순위를 확인할 수 있어요</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="appWrap">
 
 <!-- 상단 고정 바 -->
 <header class="topbar">
@@ -417,6 +620,8 @@ input{font-family:inherit}
 <footer class="foot">
   ※ 본 화면의 수치는 플랫폼 구조 검증을 위한 <b>샘플 데이터</b>입니다. 실제 서비스 시 온실가스종합정보센터(배출권거래제·목표관리제 명세서), 대학알리미(재학생·전임교원·직원 수, 연면적) 데이터로 교체됩니다. 1인당 지표의 분모(총구성원수)는 재학생+전임교원+직원 합계 기준입니다. · 대학탄소중립협의체 2기
 </footer>
+
+</div><!-- /#appWrap -->
 
 <script>
 /* ============================================================
@@ -722,9 +927,7 @@ function drawLine(container,arr,label){
   const area=`${P.l},${H-P.b} ${pts} ${W-P.r},${H-P.b}`;
   let dots='',xls='';
   arr.forEach((v,i)=>{
-    dots+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===LAST?6:4.5}" fill="${i===LAST?'#F5C84B':'#6FB0E8'}" stroke="#0E2A4E" stroke-width="2"><link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-<title>${YEARS[i]}년: ${fmt(v)}</title></circle>`;
+    dots+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===LAST?6:4.5}" fill="${i===LAST?'#F5C84B':'#6FB0E8'}" stroke="#0E2A4E" stroke-width="2"><title>${YEARS[i]}년: ${fmt(v)}</title></circle>`;
     xls+=`<text x="${x(i)}" y="${H-P.b+20}" text-anchor="middle" font-size="11.5" fill="#9FB4CC">${YEARS[i]}</text>`;
   });
   const lastV=arr[LAST];
@@ -963,6 +1166,54 @@ function renderMapPanel(){
 }
 
 renderHome();
+
+/* ---------- 인트로 시퀀스 ---------- */
+(function initIntro(){
+  const wrap=document.getElementById('introWrap');
+  const panels=[...document.querySelectorAll('.intro-panel')];
+  const bar=document.getElementById('introBar');
+  const ticks=[...document.querySelectorAll('.intro-cadence .tick')];
+  const cadenceLabel=document.getElementById('cadenceLabel');
+  const cadenceText=['보고 주기: 연 1회','보고 주기: 연 1회','보고 주기: 원단위 상시 비교','보고 주기: 원단위 상시 비교','보고 주기: 실시간에 가깝게','보고 주기: 실시간 지향'];
+
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting) en.target.classList.add('in-view');
+    });
+  },{threshold:0.5});
+  panels.forEach(p=>io.observe(p));
+
+  function updateCadence(panelIdx){
+    // 컷이 진행될수록(0→2) 눈금이 점점 촘촘하게 채워짐: 정보 시차가 좁아지는 은유
+    const activeCount = panelIdx===0?1 : panelIdx===1?3 : 6;
+    ticks.forEach((t,i)=>t.classList.toggle('on', i<activeCount));
+    cadenceLabel.textContent=cadenceText[Math.min(activeCount-1,cadenceText.length-1)];
+    bar.style.width=((panelIdx+1)/panels.length*100)+'%';
+  }
+
+  const scrollIO=new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        const idx=panels.indexOf(en.target);
+        updateCadence(idx);
+      }
+    });
+  },{threshold:0.6});
+  panels.forEach(p=>scrollIO.observe(p));
+
+  updateCadence(0);
+
+  // 이미 인트로를 본 세션이면 바로 본편으로 (같은 세션 내 재방문 시 스킵)
+  window.finishIntro=function(){
+    wrap.classList.add('leaving');
+    setTimeout(()=>{
+      wrap.style.display='none';
+      document.getElementById('appWrap').style.display='block';
+      window.scrollTo({top:0,behavior:'auto'});
+      renderHome();
+    },520);
+  };
+})();
 </script>
 </body>
 </html>
