@@ -1,640 +1,968 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>엔포켓 | 건국대학교 전력 사용량 확인 서비스</title>
-    <meta name="description" content="건국대학교 사회환경공학부 에코 스마트 시티 프로젝트의 일환인 엔포켓 서비스입니다. 실시간 전력 모니터링으로 캠퍼스의 변화를 만듭니다.">
-    <meta name="keywords" content="건국대학교, 엔포켓, En-Pocket, 에너지절약, CES, 스마트그리드, 캠퍼스, 탄소중립">
-    <meta property="og:title" content="엔포켓 - 건국대 에너지 솔루션">
-    <meta property="og:description" content="전력사용량을 보기만 해도 감축이 된다면 믿으시나요? 엔포켓과 함께하세요.">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; }
-        
-        /* Design Tokens */
-        .text-mint { color: #2dd4bf; } 
-        .bg-mint { background-color: #2dd4bf; }
-        .border-mint { border-color: #2dd4bf; }
-        .text-ku { color: #036b3f; } 
-        
-        .gradient-text { background: linear-gradient(135deg, #036b3f 0%, #2dd4bf 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .gradient-coin { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
-        .transition-all { transition: all 0.3s ease; }
-        .battle-bar-fill { transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        .modal { opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 100; }
-        .modal.active { opacity: 1; visibility: visible; }
-        .modal-content { transform: scale(0.95); transition: all 0.3s ease; }
-        .modal.active .modal-content { transform: scale(1); }
-        
-        .tab-btn.active { border-bottom: 3px solid #2dd4bf; color: #0f766e; font-weight: 700; }
-        .tab-btn { color: #64748b; font-weight: 500; }
-        
-        .hidden-page { display: none !important; }
-        
-        /* Custom Battle Select */
-        .battle-select {
-            appearance: none;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 0.4rem 2rem 0.4rem 0.8rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.875rem;
-            width: 100%;
-            max-width: 200px;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.4rem center;
-            background-repeat: no-repeat;
-            background-size: 1.2em 1.2em;
-        }
-        .battle-select option { background-color: #1e293b; color: white; }
-        
-        @keyframes flashUpdate { 0% { background-color: rgba(45, 212, 191, 0.3); } 100% { background-color: transparent; } }
-        .updated-flash { animation: flashUpdate 1.5s ease-out; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<title>KUCE — 대학 탄소중립 정보공개 플랫폼</title>
+<style>
+:root{
+  --bg-top:#0E2A4E;          /* 짙은 남색 */
+  --bg-bot:#0F3D2E;          /* 짙은 초록 */
+  --card:#132F52;            /* 카드(짙은 남색) */
+  --card-soft:#1A3A60;
+  --ink:#F2F6FB;             /* 본문(밝은색) */
+  --ink-soft:#9FB4CC;
+  --line:#2C4A73;
+  --primary:#F5C84B;         /* 포인트: 포스터 노랑 */
+  --primary-deep:#E0AE28;
+  --primary-pale:#233F66;
+  --blue:#5BA4E6;
+  --mint:#57C99B;            /* 감소(긍정) */
+  --coral:#F08A74;           /* 증가(주의) */
+  --gold:#F5C84B;            /* 우리 학교 하이라이트 */
+  --gold-pale:rgba(245,200,75,.12);
+  --radius:16px;
+  --shadow:0 4px 18px rgba(0,0,0,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Noto Sans KR","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:linear-gradient(160deg,var(--bg-top) 0%,#0D3050 45%,var(--bg-bot) 100%);
+  background-attachment:fixed;
+  color:var(--ink); line-height:1.55; letter-spacing:-.01em;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
 
-        .bounce-slow { animation: bounce 3s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    </style>
+/* ---------- 상단 고정 바 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(10,26,48,.85);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1080px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;gap:16px;
+}
+.logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:21px;color:#fff;cursor:pointer;white-space:nowrap;letter-spacing:.02em}
+.logo .leaf{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#F5C84B,#E0891F);display:grid;place-items:center;color:#12263F;font-size:16px}
+.searchwrap{position:relative;flex:1;max-width:520px}
+.searchwrap input{
+  width:100%;padding:10px 40px 10px 14px;border:1.5px solid var(--line);
+  border-radius:999px;font-size:14px;background:#0E2340;color:var(--ink);outline:none;
+  transition:border-color .15s;
+}
+.searchwrap input::placeholder{color:#6E86A6}
+.searchwrap input:focus{border-color:var(--primary)}
+.searchwrap .sicon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:15px}
+.search-drop{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;background:#132F52;
+  border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  max-height:280px;overflow:auto;display:none;z-index:60;
+}
+.search-drop.open{display:block}
+.search-drop button{display:flex;justify-content:space-between;width:100%;padding:10px 14px;font-size:14px;text-align:left}
+.search-drop button:hover{background:var(--primary-pale)}
+.search-drop .rk{color:var(--ink-soft);font-size:12px}
+.myschool-chip{
+  display:none;align-items:center;gap:6px;background:rgba(245,200,75,.15);
+  border:1px solid var(--gold);color:var(--gold);border-radius:999px;
+  padding:6px 12px;font-size:13px;font-weight:800;white-space:nowrap;
+}
+.myschool-chip.on{display:flex}
+.myschool-chip .x{cursor:pointer;font-weight:400;opacity:.7}
+
+/* ---------- 인스타그램 버튼 ---------- */
+.insta-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1.5px solid var(--line);border-radius:999px;padding:7px 13px;
+  font-size:13px;font-weight:800;color:var(--ink-soft);text-decoration:none;
+  white-space:nowrap;transition:.15s;
+}
+.insta-btn:hover{
+  color:#fff;border-color:transparent;
+  background:linear-gradient(45deg,#F58529,#DD2A7B 55%,#8134AF);
+}
+@media(max-width:560px){.insta-btn span{display:none}.insta-btn{padding:7px 9px}}
+
+/* ---------- 공통 레이아웃 ---------- */
+.page{max-width:1080px;margin:0 auto;padding:28px 20px 110px;display:none}
+.page.active{display:block;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.section-title{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:#fff}
+.muted{color:var(--ink-soft);font-size:13px}
+.pill-btn{
+  background:var(--primary);color:#12263F;border-radius:999px;padding:12px 24px;
+  font-size:15px;font-weight:900;transition:.15s;
+}
+.pill-btn:hover{background:#FFDD75;transform:translateY(-1px)}
+.ghost-btn{
+  border:1.5px solid var(--line);border-radius:999px;padding:8px 16px;
+  font-size:13px;font-weight:700;color:var(--primary);background:transparent;transition:.15s;
+}
+.ghost-btn:hover{border-color:var(--primary);background:rgba(245,200,75,.12)}
+
+/* ---------- 홈: 히어로 ---------- */
+.hero{
+  background:radial-gradient(120% 160% at 85% -20%,rgba(91,164,230,.25),transparent 55%),
+             linear-gradient(135deg,#10315B 0%,#0F3D2E 100%);
+  border:1px solid var(--line);border-radius:22px;padding:40px 34px;position:relative;overflow:hidden;
+}
+.hero::after{
+  content:"⚡";position:absolute;right:26px;bottom:-14px;font-size:120px;opacity:.08;transform:rotate(-12deg);
+}
+.hero .eyebrow{font-size:12.5px;font-weight:800;color:var(--primary);letter-spacing:.14em;margin-bottom:10px}
+.hero h1{font-size:clamp(26px,4.2vw,42px);font-weight:900;line-height:1.25;color:#fff;letter-spacing:-.02em}
+.hero .sum{
+  display:inline-flex;align-items:center;gap:10px;margin-top:18px;
+  background:var(--primary);border-radius:14px;padding:12px 20px;font-size:15px;font-weight:800;color:#12263F;
+}
+.hero .sum .delta{font-size:20px;font-weight:900}
+.hero .sum .delta.down{color:#0B6B4A}.hero .sum .delta.up{color:#B4432E}
+.delta.down{color:var(--mint)} .delta.up{color:var(--coral)}
+.hero .updated{margin-top:12px;font-size:12px;color:var(--ink-soft)}
+
+/* ---------- 홈: 전국 카드 ---------- */
+.natgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+@media(max-width:760px){.natgrid{grid-template-columns:1fr}}
+.natcard{padding:24px 22px 18px;display:flex;flex-direction:column;gap:6px}
+.natcard .head{display:flex;justify-content:space-between;align-items:flex-start}
+.natcard .label{font-size:14px;font-weight:800;color:var(--primary)}
+.natcard .big{font-size:32px;font-weight:900;letter-spacing:-.02em;color:#fff}
+.natcard .big small{font-size:14px;font-weight:600;color:var(--ink-soft);margin-left:4px}
+.natcard .chg{font-size:16px;font-weight:800;margin-top:2px}
+.minichart{margin-top:14px;height:120px;display:flex;align-items:flex-end;gap:10px}
+.minichart .bar{
+  flex:1;border-radius:8px 8px 4px 4px;position:relative;
+  background:linear-gradient(180deg,#6FB0E8,#3E7DC0);
+  min-height:8px;transition:height .5s ease;
+}
+.minichart .bar.last{background:linear-gradient(180deg,#FFD86B,#E0A428)}
+.minichart .bar span{
+  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:var(--ink-soft);white-space:nowrap;
+}
+.minichart-pad{height:22px}
+
+/* ---------- sticky CTA ---------- */
+.sticky-cta{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;
+  background:var(--primary);color:#12263F;border-radius:999px;
+  padding:15px 30px;font-size:15px;font-weight:900;
+  box-shadow:0 10px 28px rgba(245,200,75,.35);display:flex;gap:8px;align-items:center;
+  transition:transform .15s;
+}
+.sticky-cta:hover{transform:translateX(-50%) scale(1.04)}
+
+/* ---------- 비교 페이지 ---------- */
+.tabs{display:flex;gap:6px;border-bottom:2px solid var(--line);margin-bottom:18px}
+.tabs button{
+  padding:10px 18px;font-size:15px;font-weight:800;color:var(--ink-soft);
+  border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;
+}
+.tabs button.on{color:var(--primary);border-color:var(--primary)}
+.filterbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  border:1.5px solid var(--line);background:transparent;border-radius:999px;
+  padding:7px 14px;font-size:13px;font-weight:700;color:var(--ink-soft);transition:.15s;
+}
+.chip.on{background:var(--primary);border-color:var(--primary);color:#12263F}
+.rankwrap{padding:18px 18px 12px}
+.rankrow{
+  display:grid;grid-template-columns:44px 150px 1fr 110px;gap:10px;align-items:center;
+  padding:7px 8px;border-radius:10px;cursor:pointer;transition:background .12s;
+}
+.rankrow:hover{background:var(--primary-pale)}
+.rankrow .num{font-weight:800;color:var(--ink-soft);font-size:14px;text-align:center}
+.rankrow .name{font-size:14px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rankrow .barcell{background:#0E2544;border-radius:8px;height:22px;overflow:hidden}
+.rankrow .barfill{
+  height:100%;border-radius:8px;
+  background:linear-gradient(90deg,#3E7DC0,#6FB0E8);
+  transition:width .6s cubic-bezier(.2,.8,.2,1);
+}
+.rankrow .val{font-size:13px;font-weight:700;text-align:right;color:var(--ink);white-space:nowrap}
+.rankrow.mine{background:rgba(245,200,75,.12);outline:2px solid var(--gold)}
+.rankrow.mine .name{color:var(--gold)}
+.rankrow.mine .barfill{background:linear-gradient(90deg,#E0A428,#FFD86B)}
+.rankrow.mine .name::after{content:" ⚡";font-size:12px}
+.rank-note{display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px}
+
+/* ---------- 상세 페이지 ---------- */
+.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.detail-head h2{font-size:28px;font-weight:900;color:#fff}
+.badge-rank{
+  display:inline-flex;align-items:center;gap:8px;margin-top:10px;
+  background:var(--primary);color:#12263F;
+  border-radius:999px;padding:8px 20px;font-size:20px;font-weight:900;
+}
+.badge-rank small{font-size:13px;font-weight:700;color:#3D5470}
+.iconbtn{
+  width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);
+  background:var(--card);font-size:17px;display:grid;place-items:center;transition:.15s;
+}
+.iconbtn:hover{border-color:var(--primary);background:var(--primary-pale)}
+.kpigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:18px 0}
+.kpi{padding:16px 18px}
+.kpi .k-label{font-size:12.5px;font-weight:800;color:var(--primary)}
+.kpi .k-val{font-size:22px;font-weight:900;margin-top:2px;color:#fff}
+.kpi .k-val small{font-size:12px;color:var(--ink-soft);font-weight:600;margin-left:3px}
+.kpi .k-chg{font-size:13px;font-weight:800;margin-top:2px}
+.linechart-card{padding:20px}
+.linechart-card svg{width:100%;height:auto;display:block}
+.infogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.inforow{padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.inforow .il{font-size:12px;font-weight:800;color:var(--primary)}
+.inforow .iv{font-size:15px;font-weight:700;color:#fff}
+.simgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.simcard{padding:14px 16px;cursor:pointer;transition:.15s}
+.simcard:hover{border-color:var(--primary);transform:translateY(-2px)}
+.simcard .sn{font-weight:800;font-size:14px;color:#fff}
+.simcard .sv{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+.detail-cta{display:flex;justify-content:center;margin-top:26px}
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--primary);color:#12263F;padding:10px 20px;border-radius:999px;
+  font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s;z-index:70;
+}
+.toast.show{opacity:1}
+.crumb{font-size:13px;color:var(--ink-soft);margin-bottom:14px;display:flex;gap:6px;align-items:center}
+.crumb button{color:var(--primary);font-weight:800;font-size:13px}
+.crumb button:hover{text-decoration:underline}
+.foot{max-width:1080px;margin:0 auto;padding:0 20px 40px;font-size:12px;color:var(--ink-soft)}
+@media(max-width:640px){
+  .rankrow{grid-template-columns:32px 96px 1fr 84px;gap:6px}
+  .rankrow .name{font-size:12.5px}
+  .rankrow .val{font-size:11.5px}
+  .topbar-inner{flex-wrap:wrap}
+}
+
+/* ---------- 상단 내비게이션 ---------- */
+.topnav{display:flex;gap:2px}
+.topnav button{
+  padding:7px 12px;border-radius:999px;font-size:13.5px;font-weight:700;
+  color:var(--ink-soft);transition:.15s;white-space:nowrap;
+}
+.topnav button:hover{color:var(--primary);background:rgba(245,200,75,.1)}
+
+/* ---------- 지도 페이지 ---------- */
+.mapgrid{display:grid;grid-template-columns:1.25fr .9fr;gap:18px;align-items:start}
+@media(max-width:860px){.mapgrid{grid-template-columns:1fr}}
+.mapcard{padding:10px 6px 4px}
+.mapcard svg,.mapinset svg{width:100%;height:auto;display:block}
+.mapside{display:flex;flex-direction:column;gap:14px}
+.mapinset{padding:12px 14px 8px}
+.inset-title{font-size:13px;font-weight:800;color:var(--primary);margin-bottom:4px}
+.mappanel{min-height:150px}
+.mappanel .mp-in{padding:18px}
+.mappanel .mp-name{font-size:19px;font-weight:900;color:#fff}
+.mappanel .mp-rank{display:inline-block;background:var(--primary);color:#12263F;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:900;margin:8px 0 10px}
+.mappanel .mp-stat{font-size:13.5px;color:var(--ink-soft);line-height:1.8}
+.mappanel .mp-stat b{color:var(--ink)}
+.mapdot{cursor:pointer;transition:r .15s}
+.mapdot:hover{filter:brightness(1.25)}
+.maplabel{pointer-events:none;font-weight:700}
+
+</style>
 </head>
-<body class="bg-slate-50">
+<body>
 
-    <!-- ================= NAV BAR ================= -->
-    <nav class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-            <!-- Logo -->
-            <div class="flex items-center gap-1 cursor-pointer group" onclick="switchPage('dashboard')">
-                <div class="w-10 h-10 flex items-center justify-center">
-                    <i class="fa-solid fa-bolt text-3xl text-mint drop-shadow-sm group-hover:scale-110 transition-transform"></i>
-                </div>
-                <span class="text-xl font-black tracking-tight text-slate-900 ml-1">En-Pocket</span>
-            </div>
-            
-            <!-- Dashboard Menu -->
-            <div id="nav-dashboard-menu" class="hidden md:flex flex-grow max-w-md mx-8 relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <select id="globalSearch" onchange="scrollToBuilding(this.value)" class="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-teal-400 cursor-pointer text-slate-600 font-medium hover:bg-slate-200 transition">
-                    <option value="">건물별 에너지 리포트 검색 (가~하)</option>
-                </select>
-            </div>
-
-            <!-- Right Buttons -->
-            <div class="flex gap-3 text-sm font-medium items-center">
-                <div id="nav-dashboard-links" class="flex gap-4 items-center">
-                    <a href="#competition" class="text-slate-500 hover:text-teal-600 transition hidden sm:block">에너지 대항전</a>
-                    <button onclick="switchPage('campaign')" class="text-teal-700 font-bold bg-teal-50 px-4 py-2 rounded-full hover:bg-teal-100 transition flex items-center gap-2 border border-teal-100 shadow-sm">
-                        <i class="fa-solid fa-coins text-yellow-500"></i> 코인 캠페인
-                    </button>
-                </div>
-                <div id="nav-campaign-links" class="hidden">
-                    <button onclick="switchPage('dashboard')" class="text-slate-500 hover:text-teal-600 transition flex items-center gap-1 font-bold">
-                        <i class="fa-solid fa-arrow-left"></i> 대시보드 복귀
-                    </button>
-                </div>
-            </div>
-        </div>
+<!-- 상단 고정 바 -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo" onclick="go('home')"><span class="leaf">⚡</span>KUCE</div>
+    <nav class="topnav">
+      <button onclick="go('compare')">학교 비교</button>
+      <button onclick="go('map')">전국 지도</button>
     </nav>
-
-    <!-- ================= PAGE 1: DASHBOARD ================= -->
-    <main id="page-dashboard">
-        <div class="bg-slate-900 text-slate-400 text-xs py-2 text-center" id="systemStatus">
-            <i class="fa-solid fa-database mr-2"></i> 데이터 기준: 2026년 <span class="text-white font-bold" id="currentMonthDisplay">1월</span> (전년 동월 대비 분석)
-        </div>
-
-        <header class="relative bg-white pt-16 pb-12 px-4 overflow-hidden text-center">
-            <div class="max-w-4xl mx-auto relative z-10">
-                <div class="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 px-4 py-1.5 rounded-full mb-6">
-                    <span class="w-2 h-2 rounded-full bg-mint animate-pulse"></span>
-                    <span class="text-xs font-bold text-teal-700 uppercase tracking-wide">Petersen 교수 연구 인용 프로젝트</span>
-                </div>
-                
-                <!-- Updated Copy -->
-                <h1 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-6">
-                    전력사용량을 보기만 해도<br>
-                    <span class="gradient-text">전력감축이 된다면 믿으시나요?</span>
-                </h1>
-                <p class="text-lg text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto">
-                    오벌린 대학은 실시간 피드백으로 32%를 절감했습니다.<br>
-                    과연 <strong class="text-ku">건국대학교</strong>는 어떤 변화를 가져올까요?<br>
-                    <span class="text-slate-800 font-bold mt-2 block">이제 엔포켓과 함께 우리 캠퍼스의 변화를 시작합시다.</span>
-                </p>
-                
-                <div class="flex flex-col items-center justify-center mb-8">
-                    <p class="text-sm text-slate-600 font-bold mb-3 bg-slate-100 px-5 py-2 rounded-full border border-slate-200">
-                        <i class="fa-solid fa-handshake-simple text-ku mr-2"></i>저희 En-Pocket은 건국대학교 중앙환경동아리 <strong>CES</strong>와 함께합니다.
-                    </p>
-                    <a href="https://www.instagram.com/campus_energy_saver?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" 
-                       class="group flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-pink-500/30 transition-all">
-                        <i class="fa-brands fa-instagram text-xl group-hover:scale-110 transition-transform"></i>
-                        <span>건국대 중앙환경동아리(CES)와 함께하기</span>
-                    </a>
-                </div>
-                
-                <p class="text-xs text-slate-400 mt-6 border-t border-slate-100 pt-4 inline-block">
-                    * 예측 근거: 2025년 건물별 월간 에너지 소비 패턴(Seasonality Index) 및 2026년 실측 증감률 반영 모델
-                </p>
-            </div>
-        </header>
-
-        <!-- Dynamic Battle Section -->
-        <section id="competition" class="py-12 bg-slate-900 text-white relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-            <div class="max-w-6xl mx-auto px-4 relative z-10">
-                <div class="text-center mb-10">
-                    <h2 class="text-2xl font-bold text-yellow-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-trophy mr-2"></i> Monthly Energy Battle</h2>
-                    <p class="text-slate-400" id="battleMonthText">추천 비교군: 공학관 vs 생명과학관</p>
-                </div>
-                
-                <div class="flex flex-col md:flex-row gap-8 items-stretch">
-                    <!-- Left Side (Team A) -->
-                    <div class="flex-1 bg-slate-800 rounded-2xl p-6 border-2 border-slate-700 relative flex flex-col transition-all duration-300" id="battleCardA">
-                        <div class="flex justify-between items-center mb-4 gap-2">
-                            <select id="battleSelectA" class="battle-select" onchange="updateBattle()">
-                                <!-- Options populated by JS -->
-                            </select>
-                            <span class="text-xs font-bold px-2 py-1 rounded bg-slate-700 whitespace-nowrap hidden" id="badgeA"></span>
-                        </div>
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-2xl transition-colors duration-300" id="iconBoxA">
-                                <i class="fa-solid fa-building" id="iconA"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-slate-400">전년 대비 증감률</div>
-                                <div class="text-2xl font-bold" id="growthA">-</div>
-                            </div>
-                        </div>
-                        <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden mb-4">
-                            <div class="battle-bar-fill h-full bg-blue-500" id="barA" style="width: 50%"></div>
-                        </div>
-                        <div class="mt-auto pt-4 border-t border-slate-700">
-                            <p class="text-xs text-slate-400 leading-relaxed" id="reasonA"></p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-center">
-                        <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center font-black text-2xl shadow-xl border-4 border-slate-900 z-20">VS</div>
-                    </div>
-
-                    <!-- Right Side (Team B) -->
-                    <div class="flex-1 bg-slate-800 rounded-2xl p-6 border-2 border-teal-500 shadow-[0_0_20px_rgba(45,212,191,0.2)] relative flex flex-col transition-all duration-300" id="battleCardB">
-                        <div class="flex justify-between items-center mb-4 gap-2">
-                            <select id="battleSelectB" class="battle-select" onchange="updateBattle()">
-                                <!-- Options populated by JS -->
-                            </select>
-                            <span class="text-xs font-bold px-2 py-1 rounded bg-teal-500 text-slate-900 whitespace-nowrap" id="badgeB">WINNER 👑</span>
-                        </div>
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-12 h-12 bg-teal-500 rounded-lg flex items-center justify-center text-2xl text-slate-900 transition-colors duration-300" id="iconBoxB">
-                                <i class="fa-solid fa-building" id="iconB"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm text-slate-400">전년 대비 증감률</div>
-                                <div class="text-2xl font-bold text-mint" id="growthB">-</div>
-                            </div>
-                        </div>
-                        <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden mb-4">
-                            <div class="battle-bar-fill h-full bg-mint" id="barB" style="width: 50%"></div>
-                        </div>
-                        <div class="mt-auto pt-4 border-t border-slate-700">
-                            <p class="text-xs text-slate-400 leading-relaxed" id="reasonB"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Building Grid -->
-        <section id="solution-section" class="py-12 bg-white">
-            <div class="max-w-7xl mx-auto px-4">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-900">건물별 에너지 리포트</h2>
-                        <p class="text-slate-500 text-sm mt-1">카드를 클릭하여 <span class="text-mint font-bold">상세 분석 리포트</span>를 확인하세요.</p>
-                    </div>
-                    <div class="flex p-1 bg-slate-100 rounded-lg">
-                        <button onclick="filterGrid('all')" class="filter-btn active px-4 py-2 text-sm font-medium rounded-md hover:bg-white shadow-sm transition">전체</button>
-                        <button onclick="filterGrid('study')" class="filter-btn px-4 py-2 text-sm font-medium rounded-md hover:bg-white transition">학습/연구</button>
-                        <button onclick="filterGrid('living')" class="filter-btn px-4 py-2 text-sm font-medium rounded-md hover:bg-white transition">생활/편의</button>
-                        <button onclick="filterGrid('admin')" class="filter-btn px-4 py-2 text-sm font-medium rounded-md hover:bg-white transition">행정/기타</button>
-                    </div>
-                </div>
-                <div id="buildingsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-        </section>
-
-        <!-- AI Consultant -->
-        <section class="py-16 bg-slate-900 text-white border-t border-slate-800">
-            <div class="max-w-4xl mx-auto px-4 text-center">
-                <div class="inline-block bg-teal-500/20 text-teal-300 text-xs font-bold px-3 py-1 rounded-full mb-4 border border-teal-500/50">
-                    <i class="fa-solid fa-robot mr-1"></i> AI Beta
-                </div>
-                <h2 class="text-3xl font-bold mb-4">AI 에너지 컨설턴트</h2>
-                <p class="text-slate-400 mb-8">건물을 선택하면 Gemini가 건물 특성에 맞는 넛지 캠페인을 제안합니다.</p>
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 max-w-2xl mx-auto">
-                    <div class="flex gap-4 mb-6">
-                        <select id="aiBuildingSelect" class="flex-1 bg-slate-700 border-none rounded-lg text-white px-4 py-3 focus:ring-2 focus:ring-teal-500"></select>
-                        <button onclick="generateAIStrategy()" id="aiBtn" class="bg-teal-600 hover:bg-teal-500 text-white px-6 py-3 rounded-lg font-bold transition flex items-center gap-2">
-                            <span>전략 생성</span> <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        </button>
-                    </div>
-                    <div id="aiOutput" class="hidden text-left bg-slate-900 p-6 rounded-xl border border-slate-700">
-                        <div class="flex gap-4">
-                            <div class="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-lightbulb text-teal-400"></i></div>
-                            <div class="flex-grow space-y-3">
-                                <p id="aiNudgeText" class="text-slate-300 text-sm leading-relaxed mt-1">...</p>
-                                <div class="border-t border-slate-800 pt-3">
-                                    <p id="aiSloganText" class="text-white font-serif text-lg italic mt-1">"..."</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="aiLoading" class="hidden py-8"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-teal-500"></i></div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ================= PAGE 2: CAMPAIGN ================= -->
-    <main id="page-campaign" class="hidden-page">
-        <header class="py-20 bg-slate-900 text-white text-center overflow-hidden relative">
-            <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-            <div class="max-w-3xl mx-auto px-4 relative z-10">
-                <i class="fa-solid fa-coins text-6xl text-yellow-400 mb-6 animate-bounce"></i>
-                <h1 class="text-4xl md:text-5xl font-black mb-6">코인 지급 캠페인 활동</h1>
-                <p class="text-lg text-slate-300 leading-relaxed">에너지를 아끼는 작은 습관이 가치 있는 보상으로 돌아옵니다.</p>
-            </div>
-        </header>
-
-        <section class="py-16 bg-white">
-            <div class="max-w-5xl mx-auto px-4">
-                <div class="text-center mb-12">
-                    <span class="text-mint font-bold text-sm uppercase tracking-wider">How It Works</span>
-                    <h2 class="text-3xl font-bold text-slate-900">코인 지급 캠페인 활동 메뉴얼</h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div class="text-center group">
-                        <div class="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center text-3xl text-teal-600 mx-auto mb-4 group-hover:bg-teal-200 transition shadow-sm">
-                            <i class="fa-solid fa-building-circle-check"></i>
-                        </div>
-                        <h3 class="font-bold mb-2">1. 관심 건물 선정</h3>
-                        <p class="text-xs text-slate-500">주요 활동 건물 선택</p>
-                    </div>
-                    <div class="text-center group">
-                        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-3xl text-blue-600 mx-auto mb-4 group-hover:bg-blue-200 transition shadow-sm">
-                            <i class="fa-solid fa-lightbulb"></i>
-                        </div>
-                        <h3 class="font-bold mb-2">2. 절감 캠페인 진행</h3>
-                        <p class="text-xs text-slate-500">맞춤형 넛지 액션 실천</p>
-                    </div>
-                    <div class="text-center group">
-                        <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-3xl text-yellow-600 mx-auto mb-4 group-hover:bg-yellow-200 transition shadow-sm">
-                            <!-- Quantitative Measurement Illustration -->
-                            <i class="fa-solid fa-chart-pie bounce-slow"></i>
-                        </div>
-                        <h3 class="font-bold mb-2">3. 정량적 성과 측정</h3>
-                        <p class="text-xs text-slate-500">데이터 기반 절감량 확인</p>
-                    </div>
-                    <div class="text-center group">
-                        <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-3xl text-purple-600 mx-auto mb-4 group-hover:bg-purple-200 transition shadow-sm">
-                            <i class="fa-solid fa-gift"></i>
-                        </div>
-                        <h3 class="font-bold mb-2">4. 보상 지급 및 선택</h3>
-                        <p class="text-xs text-slate-500">코인 기반 리워드 교환</p>
-                    </div>
-                </div>
-
-                <div class="mt-20 max-w-4xl mx-auto bg-slate-50 rounded-2xl p-10 border border-slate-200 shadow-inner text-center">
-                    <h3 class="text-2xl font-bold mb-8">💰 월간 코인 지급 정책 (총 150코인 한도)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-xl border-2 border-yellow-400 shadow-md">
-                            <i class="fa-solid fa-crown text-3xl text-yellow-500 mb-2"></i>
-                            <h4 class="font-bold">1위팀 (1팀)</h4>
-                            <p class="text-3xl font-black gradient-coin mt-2">50 코인</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <i class="fa-solid fa-medal text-3xl text-slate-300 mb-2"></i>
-                            <h4 class="font-bold">2위팀 (2팀)</h4>
-                            <p class="text-2xl font-black text-slate-700 mt-2">30 코인</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <i class="fa-solid fa-award text-3xl text-amber-600 mb-2"></i>
-                            <h4 class="font-bold">3위팀 (4팀)</h4>
-                            <p class="text-2xl font-black text-slate-700 mt-2">10 코인</p>
-                        </div>
-                    </div>
-                    <p class="mt-8 text-sm text-slate-500">* 1코인 당 커피 쿠폰 1매 혹은 대학 발전 기금 기부 선택권 부여</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ================= FOOTER ================= -->
-    <footer class="bg-white border-t border-slate-200 py-16 text-center relative z-20">
-        <div class="max-w-4xl mx-auto px-4 space-y-6">
-            <h2 class="text-2xl font-black text-slate-900">En-Pocket</h2>
-            <p class="text-slate-500 font-medium italic">지속 가능한 캠퍼스를 위한 작은 움직임</p>
-            <div class="w-12 h-1 bg-mint mx-auto rounded-full"></div>
-            <div class="text-sm text-slate-500 leading-relaxed font-medium">
-                <p>Representative: Lee Jeong-hoon | Project Period: 2025.07 - 2025.11</p>
-                <p>Data Source: Campus Facility Management Team (Jan 2025-2026)</p>
-                <p class="mt-4 text-xs">활동 및 캠페인 문의: <span class="text-ku font-bold">010-3728-4610</span> (이정훈 대표)</p>
-            </div>
-            
-            <p class="text-xs text-slate-400 border-t border-slate-100 inline-block pt-4">
-                ※ 아메리카노 환산 기준: 2,000원 (교내 및 인근 카페 평균가 적용)
-            </p>
-            
-            <div class="pt-6">
-                <!-- Lock Button (Fixed Z-Index & Click Area) -->
-                <button onclick="adminLogin()" class="text-slate-300 hover:text-slate-500 transition p-4 rounded-full hover:bg-slate-50 relative z-50 focus:outline-none" title="관리자 전용">
-                    <i class="fa-solid fa-lock text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Hidden Input for Data Update -->
-    <input type="file" id="excelInput" accept=".xlsx, .csv" class="hidden" onchange="handleFileUpload(event)">
-
-    <!-- Detail Modal -->
-    <div id="detailModal" class="modal fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="closeModal(event)">
-        <div class="modal-content bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                <h3 id="modalTitle" class="text-lg font-bold">건물 상세 분석</h3>
-                <button onclick="closeModal(event)" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="flex border-b border-slate-200">
-                <button onclick="switchTab('short')" id="tabShort" class="tab-btn active flex-1 py-3 text-center transition-colors">📊 <span id="nextMonthName">2월</span> 예측</button>
-                <button onclick="switchTab('long')" id="tabLong" class="tab-btn flex-1 py-3 text-center transition-colors">📅 연간 패턴 분석</button>
-            </div>
-            <div class="p-6">
-                <div id="contentShort" class="block">
-                    <div class="h-64 w-full mb-6"><canvas id="chartShort"></canvas></div>
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm leading-relaxed" id="modalPredictionShort"></div>
-                </div>
-                <div id="contentLong" class="hidden">
-                    <div class="h-64 w-full mb-6"><canvas id="chartLong"></canvas></div>
-                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-sm leading-relaxed" id="modalAnalysisLong"></div>
-                </div>
-            </div>
-        </div>
+    <div class="searchwrap">
+      <input id="searchInput" type="text" placeholder="대학명 검색 — 우리 학교를 찾아보세요" autocomplete="off">
+      <span class="sicon">🔍</span>
+      <div class="search-drop" id="searchDrop"></div>
     </div>
+    <a class="insta-btn" href="https://www.instagram.com/net0campus?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener" title="대학 탄소중립 학생 협의체 인스타그램">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5"/>
+        <circle cx="12" cy="12" r="4.2"/>
+        <circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/>
+      </svg><span>@net0campus</span>
+    </a>
+    <div class="myschool-chip" id="myChip">
+      <span id="myChipName"></span><span class="x" onclick="clearMySchool(event)">✕</span>
+    </div>
+  </div>
+</header>
 
-    <!-- ================= JAVASCRIPT ================= -->
-    <script>
-        // --- SPA Navigation ---
-        function switchPage(pageId) {
-            const dashboard = document.getElementById('page-dashboard');
-            const campaign = document.getElementById('page-campaign');
-            const navDashboard = document.getElementById('nav-dashboard-links');
-            const navCampaign = document.getElementById('nav-campaign-links');
-            const navSearch = document.getElementById('nav-dashboard-menu');
+<!-- ================= 홈 ================= -->
+<main class="page active" id="page-home">
+  <section class="hero">
+    <div class="eyebrow">KOREAN UNIVERSITIES FOR CARBON &amp; ENERGY REDUCTION</div>
+    <h1>2026 전국 대학 탄소배출 현황</h1>
+    <div class="sum">
+      전국 대학 탄소배출량, 전년 대비
+      <span class="delta down" id="heroDelta">−3.1%</span>
+      감소
+    </div>
+    <div class="updated" id="heroUpdated">데이터 출처: 온실가스종합정보센터·대학알리미 (샘플) · 최근 업데이트 2026.07</div>
+  </section>
 
-            if (pageId === 'dashboard') {
-                dashboard.classList.remove('hidden-page');
-                campaign.classList.add('hidden-page');
-                navDashboard.classList.remove('hidden');
-                navCampaign.classList.add('hidden');
-                navSearch.classList.remove('hidden');
-                navSearch.classList.add('md:flex');
-            } else {
-                dashboard.classList.add('hidden-page');
-                campaign.classList.remove('hidden-page');
-                navDashboard.classList.add('hidden');
-                navCampaign.classList.remove('hidden');
-                navSearch.classList.add('hidden');
-                navSearch.classList.remove('md:flex');
-            }
-            window.scrollTo(0, 0);
-        }
+  <div class="natgrid">
+    <div class="card natcard">
+      <div class="head">
+        <div>
+          <div class="label">전국 대학 탄소배출량</div>
+          <div class="big" id="natCarbonVal"></div>
+          <div class="chg" id="natCarbonChg"></div>
+        </div>
+        <button class="ghost-btn" onclick="go('compare','carbon')">전체보기</button>
+      </div>
+      <div class="minichart" id="natCarbonChart"></div>
+      <div class="minichart-pad"></div>
+    </div>
+    <div class="card natcard">
+      <div class="head">
+        <div>
+          <div class="label">전국 대학 에너지사용량</div>
+          <div class="big" id="natEnergyVal"></div>
+          <div class="chg" id="natEnergyChg"></div>
+        </div>
+        <button class="ghost-btn" onclick="go('compare','energy')">전체보기</button>
+      </div>
+      <div class="minichart" id="natEnergyChart"></div>
+      <div class="minichart-pad"></div>
+    </div>
+  </div>
+</main>
 
-        // --- Data Logic (Fact-Checked) ---
-        function generateAnnualData(janValue, category) {
-            let ratios = [];
-            if (category === 'living') ratios = [1.0, 0.95, 0.85, 0.75, 0.70, 0.80, 1.10, 1.15, 0.85, 0.75, 0.90, 0.98];
-            else if (category === 'study') ratios = [1.0, 0.90, 1.10, 1.05, 1.00, 1.15, 1.25, 1.15, 1.05, 1.00, 1.05, 0.95];
-            else ratios = [1.0, 0.95, 0.90, 0.85, 0.85, 0.95, 1.10, 1.10, 0.90, 0.85, 0.90, 0.95];
-            return ratios.map(r => Math.floor(janValue * r));
-        }
+<!-- ================= 비교 페이지 ================= -->
+<main class="page" id="page-compare">
+  <div class="crumb"><button onclick="go('home')">홈</button> › 학교 비교 데이터</div>
+  <div class="tabs">
+    <button id="tab-carbon" onclick="setTab('carbon')">탄소배출량</button>
+    <button id="tab-energy" onclick="setTab('energy')">에너지사용량</button>
+  </div>
+  <div class="filterbar">
+    <div class="chips" id="filterChips"></div>
+    <button class="ghost-btn" onclick="downloadCSV()">⬇ 데이터 다운로드 (CSV)</button>
+  </div>
+  <div class="chips" id="regionChips" style="margin-bottom:12px"></div>
+  <div class="card rankwrap" id="rankList"></div>
+  <div class="muted" id="perAreaNote" style="margin-top:8px;display:none">※ 면적당 지표는 캠퍼스 특성(호수·부속시설·병원 등 연면적 구성)에 따라 왜곡될 수 있으므로 참고용으로 활용해 주세요.</div>
+  <div class="rank-note">
+    <span class="muted">배출량·사용량이 낮은 순으로 정렬됩니다. 막대를 클릭하면 학교 상세 페이지로 이동합니다.</span>
+    <span class="muted" id="rankUnit"></span>
+  </div>
+</main>
 
-        let currentMonthIndex = 0; // Jan
-        let displayMonth = "1월";
-        let nextMonth = "2월";
-        
-        // Corrected Data with Real 2026 Values
-        const buildingDB = [
-            { name: "KULHOUSE (기숙사)", cat: "living", u25_jan: 691945, uCurr: 782041, desc: "24시간 생활 공간", solution: "외출 시 내 방 소등", winFactor: "거주 학생들의 개인 소등 실천율 증가", loseFactor: "실생활 가전 및 상시 대기전력 발생" },
-            { name: "상허기념도서관", cat: "study", u25_jan: 154800, uCurr: 179500, desc: "학습 및 열람 공간", solution: "공실 구역 폐쇄 & 빈 자리 소등", winFactor: "학습 외 구역 조명 철저 차단", loseFactor: "시험 기간 전열기기 및 노트북 전력 소모 폭증" },
-            { name: "공학관", cat: "study", u25_jan: 205799, uCurr: 235790, desc: "학부 수업 및 실습실", solution: "수업 종료 후 소등 확인", winFactor: "강의 종료 후 책임자 지정 소등제 효과", loseFactor: "야간 실습 및 수업 종료 후 조명 미소등 사례 빈번" },
-            { name: "새천년관", cat: "admin", u25_jan: 141000, uCurr: 155580, desc: "대형 행사 및 공연장", solution: "행사 스케줄 연동 공조 제어", winFactor: "공연/행사 스케줄에 따른 시스템 정밀 제어", loseFactor: "대규모 행사 진행 시 일시적 냉난방 부하 폭증" },
-            { name: "생명과학관", cat: "study", u25_jan: 121500, uCurr: 139100, desc: "바이오 실험 및 실습", solution: "실험 기자재 집중 관리", winFactor: "학부생들의 주의 깊은 관리로 전년 수준 복구 잠재력 큼", loseFactor: "24시간 가동 필수인 실험 장비의 높은 기본 부하" },
-            { name: "학생회관", cat: "living", u25_jan: 105000, uCurr: 118000, desc: "학생 편의 및 동아리", solution: "타이머 콘센트 활용", winFactor: "동아리방 에너지 지킴이 캠페인 성공", loseFactor: "심야 시간대 무분별한 전열기구 사용" },
-            { name: "행정관", cat: "admin", u25_jan: 85000, uCurr: 92000, desc: "대학 업무 행정동", solution: "점심시간 일괄 소등", winFactor: "사무기기 절전 및 일괄 소등 정책 준수", loseFactor: "노후 기기 사용으로 인한 대기전력 누수" },
-            { name: "예술문화대학", cat: "study", u25_jan: 72000, uCurr: 79000, desc: "예술 실습", solution: "자연채광 활용", winFactor: "자연 채광 활용 및 야간 작업 구역 집약", loseFactor: "야간 실습 작업으로 인한 조명 부하 지속" },
-            { name: "동물생명과학관", cat: "study", u25_jan: 98000, uCurr: 109000, desc: "동물 실험", solution: "노후 장비 교체 권장", winFactor: "고효율 장비 교체 및 관리", loseFactor: "노후 실험 장비의 낮은 에너지 효율" },
-            { name: "수의과대학", cat: "study", u25_jan: 88000, uCurr: 95000, desc: "동물 병원", solution: "비응급 구역 센서 설치", winFactor: "센서등 설치로 불필요한 조명 차단", loseFactor: "24시간 의료 장비 가동 필수" },
-            { name: "법학관", cat: "study", u25_jan: 65000, uCurr: 68000, desc: "강의실", solution: "강의 연동 냉난방 제어", winFactor: "강의 시간표 연동 제어 시스템 가동", loseFactor: "공강 시간대 강의실 대기 전력 발생" },
-            { name: "산학협동관", cat: "admin", u25_jan: 110000, uCurr: 122000, desc: "입주 기업", solution: "개별 에너지 고지서", winFactor: "입주 기업별 에너지 절감 인센티브 효과", loseFactor: "입주 기업의 야간 근무 증가" },
-            { name: "인문학관", cat: "study", u25_jan: 54000, uCurr: 58000, desc: "강의실", solution: "창호 단열 필름", winFactor: "단열 필름 부착으로 냉난방 효율 증대", loseFactor: "노후 건물의 낮은 단열 성능" },
-            { name: "국제학사", cat: "living", u25_jan: 42000, uCurr: 48000, desc: "유학생 거주", solution: "다국어 매뉴얼 배포", winFactor: "유학생 대상 에너지 절약 교육 효과", loseFactor: "문화적 차이로 인한 에너지 사용 패턴 상이" }
-        ];
+<!-- ================= 상세 페이지 ================= -->
+<main class="page" id="page-detail">
+  <div class="crumb">
+    <button onclick="go('home')">홈</button> ›
+    <button onclick="go('compare')">학교 비교 데이터</button> ›
+    <span id="crumbSchool"></span>
+  </div>
+  <div class="detail-head">
+    <div>
+      <h2 id="dName"></h2>
+      <div class="badge-rank" id="dBadge"></div>
+    </div>
+    <button class="iconbtn" title="공유하기" onclick="shareSchool()">🔗</button>
+  </div>
 
-        buildingDB.forEach(b => {
-            b.history25 = generateAnnualData(b.u25_jan, b.cat);
-            b.growth = ((b.uCurr - b.u25_jan) / b.u25_jan * 100).toFixed(1);
-        });
+  <div class="kpigrid" id="dKpis"></div>
 
-        // --- Init Function ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Dropdown Initialization (Essential for updateBattle)
-            initBattleDropdowns();
-            populateDropdown();
-            populateAISelect();
-            
-            // 2. Initial UI Sync
-            refreshDashboard();
-            switchPage('dashboard');
-        });
+  <div class="tabs" style="margin-top:6px">
+    <button id="dtab-carbon" onclick="setDetailTab('carbon')">탄소배출량</button>
+    <button id="dtab-energy" onclick="setDetailTab('energy')">에너지사용량</button>
+    <button id="dtab-info" onclick="setDetailTab('info')">기타정보</button>
+  </div>
 
-        function refreshDashboard() {
-            renderGrid(buildingDB);
-            updateBattle(); // Depends on dropdown values
-            document.getElementById('currentMonthDisplay').innerText = displayMonth;
-            document.getElementById('nextMonthName').innerText = nextMonth;
-        }
+  <div id="dChartArea" class="card linechart-card"></div>
+  <div id="dInfoArea" class="infogrid" style="display:none"></div>
 
-        // --- Battle Logic ---
-        function initBattleDropdowns() {
-            const selectA = document.getElementById('battleSelectA');
-            const selectB = document.getElementById('battleSelectB');
-            if (!selectA || !selectB) return;
+  <h3 class="section-title" style="margin-top:26px">비슷한 규모의 학교</h3>
+  <div class="simgrid" id="dSimilar"></div>
 
-            selectA.innerHTML = '';
-            selectB.innerHTML = '';
+  <div class="detail-cta">
+    <button class="pill-btn" onclick="compareWithOthers()">다른 학교와 비교하기 →</button>
+  </div>
+</main>
 
-            buildingDB.forEach((b, idx) => {
-                const optA = document.createElement('option');
-                optA.value = idx; optA.text = b.name;
-                const optB = optA.cloneNode(true);
-                selectA.appendChild(optA);
-                selectB.appendChild(optB);
-            });
 
-            // Default: Engineering(2) vs Bio(4)
-            selectA.value = 2; selectB.value = 4;
-        }
+<!-- ================= 전국 지도 ================= -->
+<main class="page" id="page-map">
+  <div class="crumb"><button onclick="go('home')">홈</button> › 전국 지도에서 찾기</div>
+  <h3 class="section-title">🗺 전국 지도에서 대학 선택</h3>
+  <div class="mapgrid">
+    <div class="card mapcard">
+      <div id="koreaMap"></div>
+      <div class="muted" style="padding:0 16px 14px">점을 클릭하면 오른쪽에 학교 정보가 표시됩니다. <b style="color:var(--primary)">수도권 박스를 클릭하면 확대</b>됩니다.</div>
+    </div>
+    <div class="mapside">
+      <div class="card mappanel" id="mapPanel">
+        <div class="muted" style="padding:18px;text-align:center">지도에서 대학을 선택해 주세요 ⚡</div>
+      </div>
+    </div>
+  </div>
+</main>
 
-        function updateBattle() {
-            const idxA = document.getElementById('battleSelectA').value;
-            const idxB = document.getElementById('battleSelectB').value;
-            if (idxA === "" || idxB === "") return;
-            renderBattleSide('A', buildingDB[idxA], buildingDB[idxB]);
-            renderBattleSide('B', buildingDB[idxB], buildingDB[idxA]);
-        }
+<button class="sticky-cta" id="stickyCta" onclick="ctaClick()">🏫 우리 학교 비교하기</button>
+<div class="toast" id="toast"></div>
 
-        function renderBattleSide(side, bSelf, bOpponent) {
-            const growthSelf = parseFloat(bSelf.growth);
-            const growthOpp = parseFloat(bOpponent.growth);
-            const isWin = growthSelf < growthOpp;
-            
-            document.getElementById(`icon${side}`).className = `fa-solid ${getIcon(bSelf.name)}`;
-            const growthElem = document.getElementById(`growth${side}`);
-            growthElem.innerText = `${growthSelf > 0 ? '+' : ''}${growthSelf}%`;
-            growthElem.className = `text-2xl font-bold ${isWin ? 'text-mint' : 'text-red-400'}`;
-            
-            const bar = document.getElementById(`bar${side}`);
-            bar.style.width = isWin ? '70%' : '30%';
-            bar.className = `battle-bar-fill h-full ${isWin ? 'bg-mint' : 'bg-blue-500'}`;
+<footer class="foot">
+  ※ 본 화면의 수치는 플랫폼 구조 검증을 위한 <b>샘플 데이터</b>입니다. 실제 서비스 시 온실가스종합정보센터(배출권거래제·목표관리제 명세서), 대학알리미(재학생·전임교원·직원 수, 연면적) 데이터로 교체됩니다. 1인당 지표의 분모(총구성원수)는 재학생+전임교원+직원 합계 기준입니다. · 대학탄소중립협의체 2기
+</footer>
 
-            const badge = document.getElementById(`badge${side}`);
-            badge.style.display = isWin ? "inline-block" : "none";
-            if (isWin) {
-                badge.innerText = "WINNER 👑";
-                badge.className = "text-xs font-bold px-2 py-1 rounded bg-mint text-slate-900 whitespace-nowrap";
-            }
+<script>
+/* ============================================================
+   [데이터 영역] — 실제 데이터로 교체할 때는 이 부분만 수정하면 됩니다.
+   각 학교: 이름, 제도유형, 총구성원수(명), 연면적(㎡),
+   기준배출량(tCO2e), 연도별 탄소배출량(tCO2e), 연도별 에너지사용량(TJ),
+   탄소배출권 구매액(백만원)
+============================================================ */
+const YEARS=[2021,2022,2023,2024,2025,2026];
+// 연도별 수치 생성기(샘플): 시작값에서 연평균 감축률만큼 감소 + 소폭 변동
+const wig=[0,0.004,-0.003,0.002,-0.002,0.001];
+const gen=(v0,r)=>YEARS.map((_,i)=>Math.round(v0*Math.pow(1-r,i)*(1+wig[i])));
+/* 필드: n=기관명, d=축약명, r=권역, s=제도(ETS=배출권거래제/TMS=목표관리제),
+   p=총구성원수(재학생+전임교원+직원, 명), a=연면적(㎡), b=기준배출량(tCO2e),
+   c=연도별 탄소배출량, e=연도별 에너지사용량(TJ), k=배출권 구매액(백만원) */
+const SCHOOLS=[
+ {n:"강원대학교", d:"강원대",r:"강원권",s:"TMS",p:24300,a:1050000,b:39000, c:gen(40300,0.022), e:gen(795,0.021), k:72},
+ {n:"경북대학교", d:"경북대",r:"영남권",s:"TMS",p:27800,a:1180000,b:61000, c:gen(63100,0.021), e:gen(1247,0.020), k:120},
+ {n:"경상국립대학교", d:"경상국립대",r:"영남권",s:"TMS",p:21500,a:980000,b:36000, c:gen(37200,0.020), e:gen(735,0.019), k:60},
+ {n:"서울대학교", d:"서울대",r:"수도권",s:"ETS",p:34500,a:1620000,b:118000,c:gen(121000,0.023),e:gen(2380,0.022),k:420},
+ {n:"부산대학교", d:"부산대",r:"영남권",s:"TMS",p:28900,a:1230000,b:66000, c:gen(68200,0.021), e:gen(1347,0.020), k:150},
+ {n:"전남대학교", d:"전남대",r:"호남권",s:"TMS",p:24600,a:1090000,b:52000, c:gen(53800,0.020), e:gen(1063,0.019), k:95},
+ {n:"전북대학교", d:"전북대",r:"호남권",s:"TMS",p:23200,a:1020000,b:47000, c:gen(48600,0.019), e:gen(960,0.019), k:85},
+ {n:"충남대학교", d:"충남대",r:"충청권",s:"TMS",p:22400,a:990000,b:45500, c:gen(47100,0.020), e:gen(930,0.019), k:80},
+ {n:"충북대학교", d:"충북대",r:"충청권",s:"TMS",p:18700,a:830000,b:37000, c:gen(38300,0.019), e:gen(757,0.018), k:65},
+ {n:"학교법인 가톨릭학원", d:"가톨릭학원",r:"수도권",s:"ETS",p:19800,a:960000,b:95000, c:gen(98400,0.022), e:gen(1944,0.021), k:340},
+ {n:"학교법인 건국대학교", d:"건국대학교",r:"수도권",s:"TMS",p:23900,a:880000,b:52000, c:gen(53900,0.020), e:gen(1065,0.019), k:98},
+ {n:"학교법인 경희학원", d:"경희학원",r:"수도권",s:"TMS",p:26700,a:920000,b:62000, c:gen(64100,0.021), e:gen(1266,0.020), k:118},
+ {n:"학교법인 계명대학교", d:"계명대학교",r:"영남권",s:"TMS",p:18200,a:790000,b:48000, c:gen(49700,0.019), e:gen(982,0.018), k:88},
+ {n:"학교법인 고려중앙학원", d:"고려중앙학원",r:"수도권",s:"ETS",p:30100,a:1240000,b:120000,c:gen(123800,0.022),e:gen(2446,0.021),k:405},
+ {n:"학교법인 성균관대학", d:"성균관대학",r:"수도권",s:"TMS",p:26200,a:1010000,b:74000, c:gen(75800,0.021), e:gen(1497,0.020), k:135},
+ {n:"학교법인 연세대학교", d:"연세대학교",r:"수도권",s:"ETS",p:31400,a:1350000,b:150000,c:gen(154600,0.023),e:gen(3054,0.022),k:520},
+ {n:"학교법인 영남학원", d:"영남학원",r:"영남권",s:"TMS",p:20400,a:900000,b:46000, c:gen(47600,0.019), e:gen(940,0.018), k:82},
+ {n:"학교법인 이화학당", d:"이화학당",r:"수도권",s:"TMS",p:18600,a:700000,b:45000, c:gen(46300,0.020), e:gen(915,0.019), k:78},
+ {n:"학교법인 중앙대학교", d:"중앙대학교",r:"수도권",s:"TMS",p:22800,a:850000,b:60000, c:gen(62000,0.021), e:gen(1225,0.020), k:112},
+ {n:"학교법인 포항공과대학교", d:"포항공과대학교",r:"영남권",s:"ETS",p:5400,a:450000,b:41000, c:gen(42600,0.020), e:gen(842,0.019), k:130},
+ {n:"학교법인 한양학원", d:"한양학원",r:"수도권",s:"TMS",p:27300,a:950000,b:71000, c:gen(73400,0.021), e:gen(1450,0.020), k:128}
+];
+/* ============================================================ */
 
-            document.getElementById(`battleCard${side}`).className = `flex-1 bg-slate-800 rounded-2xl p-6 border-2 flex flex-col transition-all duration-300 ${isWin ? 'border-teal-500 shadow-[0_0_20px_rgba(45,212,191,0.2)]' : 'border-slate-700'}`;
-            document.getElementById(`iconBox${side}`).className = `w-12 h-12 rounded-lg flex items-center justify-center text-2xl transition-colors duration-300 ${isWin ? 'bg-mint text-slate-900' : 'bg-blue-600'}`;
-            
-            document.getElementById(`reason${side}`).innerHTML = isWin ? `<span class="font-bold text-mint mb-1 block">승리 요인:</span>${bSelf.winFactor}` : `<span class="font-bold text-blue-400 mb-1 block">패배 원인:</span>${bSelf.loseFactor}`;
-        }
+const LAST=YEARS.length-1;
+let mySchool=null;         // 선택된 '우리 학교' 이름
+let curTab='carbon';       // 비교 페이지 탭
+let curFilter='total';
+let curRegion='all';        // 권역 필터     // total | percap | perarea
+let curSchool=null;        // 상세 페이지 학교
+let dTab='carbon';         // 상세 페이지 탭
 
-        // --- Grid Render ---
-        function renderGrid(data) {
-            const grid = document.getElementById('buildingsGrid');
-            grid.innerHTML = '';
-            data.forEach((b) => {
-                const historyVal = b.history25[currentMonthIndex];
-                // Base cost 2,000 KRW
-                const coffeeCups = Math.max(0, Math.floor(((b.uCurr - historyVal) * 120) / 2000)); 
-                const card = document.createElement('div');
-                card.className = `bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover flex flex-col cursor-pointer group`;
-                card.onclick = () => openModal(b.name);
-                card.dataset.id = b.name;
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-mint group-hover:text-white transition"><i class="fa-solid ${getIcon(b.name)}"></i></div>
-                            <div><h3 class="font-bold text-slate-900 group-hover:text-mint transition">${b.name}</h3><span class="text-xs text-slate-400 font-medium uppercase">${b.cat}</span></div>
-                        </div>
-                        <div class="text-lg font-bold ${b.growth > 0 ? 'text-red-500' : 'text-emerald-500'}">${b.growth > 0 ? '+' : ''}${b.growth}%</div>
-                    </div>
-                    <div class="bg-slate-50 rounded-lg p-3 mb-4 text-sm font-mono"><div class="flex justify-between"><span>25년 ${displayMonth}</span><span>${historyVal.toLocaleString()}</span></div><div class="flex justify-between font-bold text-mint mt-1"><span>26년 ${displayMonth}</span><span>${b.uCurr.toLocaleString()}</span></div></div>
-                    <div class="flex items-center gap-3 mb-4 bg-orange-50 p-3 rounded-lg border border-orange-100 text-xs text-orange-800 leading-tight"><i class="fa-solid fa-mug-hot text-base"></i><span>증가분은 <strong>아메리카노 ${coffeeCups.toLocaleString()}잔</strong><br>값과 같습니다!</span></div>
-                    <div class="mt-auto pt-4 border-t border-slate-100 text-right"><span class="text-xs text-slate-400 font-medium group-hover:text-mint transition">리포트 분석 &rarr;</span></div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+const fmt=n=>n.toLocaleString('ko-KR');
+const fmt1=n=>n.toLocaleString('ko-KR',{maximumFractionDigits:1});
+const fmt2=n=>n.toLocaleString('ko-KR',{maximumFractionDigits:2});
 
-        // --- Admin Action (February Simulation) ---
-        function adminLogin() {
-            const pwd = prompt("관리자 비밀번호를 입력하세요 (Hint: 4610):");
-            if(pwd === "4610") {
-                document.getElementById('excelInput').click();
-            } else if (pwd !== null) {
-                alert("비밀번호가 일치하지 않습니다.");
-            }
-        }
+function metricVal(s,tab,filter,yi=LAST){
+  const base = tab==='carbon' ? s.c[yi] : s.e[yi];
+  if(filter==='percap') return base/s.p*1000;   // 1인당(탄소:kgCO2e/명 → *1000, 에너지:GJ/명 → *1000)
+  if(filter==='perarea')return base/s.a*1000;   // 면적당
+  return base;
+}
+function unitOf(tab,filter){
+  if(tab==='carbon'){
+    if(filter==='percap') return 'kgCO₂e/명';
+    if(filter==='perarea')return 'kgCO₂e/㎡';
+    return 'tCO₂e';
+  }else{
+    if(filter==='percap') return 'GJ/명';
+    if(filter==='perarea')return 'GJ/㎡';
+    return 'TJ';
+  }
+}
+function chg(arr){const p=arr[LAST-1],c=arr[LAST];return (c-p)/p*100;}
+function deltaHTML(v,inline){
+  const cls=v<=0?'down':'up';
+  const arrow=v<=0?'▼':'▲';
+  return `<span class="delta ${cls}" ${inline?'':''}>${arrow} ${Math.abs(v).toFixed(1)}%</span>`;
+}
 
-        function handleFileUpload(e) {
-            currentMonthIndex = 1;
-            displayMonth = "2월"; nextMonth = "3월";
-            buildingDB.forEach(b => {
-                b.uCurr = Math.floor(b.uCurr * (0.94 + Math.random() * 0.12)); // Simulating real-world change
-                b.growth = ((b.uCurr - b.history25[currentMonthIndex]) / b.history25[currentMonthIndex] * 100).toFixed(1);
-            });
-            alert(`🔒 관리자 인증 성공: 캠퍼스 데이터가 ${displayMonth} 기준으로 업데이트되었습니다.`);
-            refreshDashboard();
-            document.getElementById('buildingsGrid').classList.add('updated-flash');
-            setTimeout(()=>document.getElementById('buildingsGrid').classList.remove('updated-flash'), 1500);
-        }
+/* ---------- 페이지 전환 ---------- */
+function go(page,tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(page==='compare'){ if(tab) curTab=tab; renderCompare(); }
+  if(page==='home') renderHome();
+  if(page==='map') renderMap();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
-        // --- Modal & Charts ---
-        let currentChart = null;
-        let currentBuilding = null;
-        function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
-        function openModal(name) {
-            currentBuilding = buildingDB.find(x => x.name === name);
-            document.getElementById('modalTitle').innerText = `${currentBuilding.name} 상세 에너지 리포트`;
-            document.getElementById('detailModal').classList.add('active');
-            switchTab('short');
-        }
-        function switchTab(tab) {
-            document.getElementById('tabShort').classList.toggle('active', tab === 'short');
-            document.getElementById('tabLong').classList.toggle('active', tab === 'long');
-            document.getElementById('contentShort').style.display = tab === 'short' ? 'block' : 'none';
-            document.getElementById('contentLong').style.display = tab === 'long' ? 'block' : 'none';
-            const b = currentBuilding;
-            const ctxId = tab === 'short' ? 'chartShort' : 'chartLong';
-            const ctx = document.getElementById(ctxId).getContext('2d');
-            if(currentChart) currentChart.destroy();
-            
-            if(tab === 'short') {
-                const ratio = b.history25[currentMonthIndex+1] ? b.history25[currentMonthIndex+1]/b.history25[currentMonthIndex] : 0.95;
-                const pred = Math.floor(b.uCurr * ratio);
-                currentChart = new Chart(ctx, { type: 'bar', data: { labels: [`25년 ${displayMonth}`, `26년 ${displayMonth}`, `26년 ${nextMonth}(예측)`], datasets: [{ label: 'kWh', data: [b.history25[currentMonthIndex], b.uCurr, pred], backgroundColor: ['#cbd5e1', '#2dd4bf', '#3b82f6'], borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-                document.getElementById('modalPredictionShort').innerHTML = `<strong>[추세 예측]</strong> 2025년 패턴 분석 결과, ${nextMonth} 예상치는 <strong>${pred.toLocaleString()} kWh</strong>입니다.`;
-            } else {
-                // FIXED: 2026 Data logic corrected to use uCurr for current month
-                const data26 = Array(12).fill(null); 
-                // data26[0] = b.uCurr; // This was wrong if month > 0.
-                
-                // Logic: Fill up to current month with simulated "real" data
-                // For Jan (idx 0), we use b.uCurr if currentMonthIndex is 0.
-                // If currentMonthIndex > 0 (e.g. Feb), b.uCurr represents Feb.
-                // We need to store Jan data somewhere or simulate it back.
-                // For this demo, let's just show the current month's point to be simple and accurate to "latest".
-                
-                // RE-FIXED LOGIC: Show 2026 data point ONLY for current month to avoid confusion
-                data26[currentMonthIndex] = b.uCurr;
+/* ---------- 홈 ---------- */
+function natTotals(key){
+  return YEARS.map((_,yi)=>SCHOOLS.reduce((a,s)=>a+s[key][yi],0));
+}
+function renderHome(){
+  const c=natTotals('c'), e=natTotals('e');
+  const cChg=chg(c), eChg=chg(e);
+  document.getElementById('heroDelta').outerHTML=deltaHTML(cChg).replace('class="delta','id="heroDelta" class="delta');
+  document.getElementById('natCarbonVal').innerHTML=fmt(Math.round(c[LAST]/1000))+'<small>천 tCO₂e</small>';
+  document.getElementById('natEnergyVal').innerHTML=fmt(Math.round(e[LAST]))+'<small>TJ</small>';
+  document.getElementById('natCarbonChg').innerHTML='전년 대비 '+deltaHTML(cChg);
+  document.getElementById('natEnergyChg').innerHTML='전년 대비 '+deltaHTML(eChg);
+  drawMini('natCarbonChart',c); drawMini('natEnergyChart',e);
+}
+function drawMini(id,arr){
+  const el=document.getElementById(id); el.innerHTML='';
+  const max=Math.max(...arr);
+  arr.forEach((v,i)=>{
+    const b=document.createElement('div');
+    b.className='bar'+(i===LAST?' last':'');
+    b.style.height=(v/max*100)+'%';
+    b.innerHTML=`<span>${YEARS[i]}</span>`;
+    b.title=fmt(Math.round(v));
+    el.appendChild(b);
+  });
+}
 
-                currentChart = new Chart(ctx, { type: 'line', data: { labels: ['1','2','3','4','5','6','7','8','9','10','11','12'].map(m=>m+'월'), datasets: [{ label: '2025 실측', data: b.history25, borderColor: '#cbd5e1', borderDash: [5,5], fill: false }, { label: '2026 실측', data: data26, borderColor: '#2dd4bf', backgroundColor: '#2dd4bf', pointRadius: 6, fill: false, spanGaps: false }] }, options: { responsive: true, maintainAspectRatio: false } });
-                document.getElementById('modalAnalysisLong').innerHTML = `본 건물은 연간 패턴 분석 결과 효율적인 전력 관리가 유지되고 있는 것으로 평가됩니다.`;
-            }
-        }
+/* ---------- 검색 ---------- */
+const sInput=document.getElementById('searchInput');
+const sDrop=document.getElementById('searchDrop');
+function renderSearchList(){
+  const q=sInput.value.trim().toLowerCase();
+  const ranked=[...SCHOOLS].sort((a,b)=>a.c[LAST]-b.c[LAST]);
+  const rankMap={}; ranked.forEach((s,i)=>rankMap[s.n]=i+1);
+  let list=[...SCHOOLS].sort((a,b)=>a.n.localeCompare(b.n,'ko'));   // 가나다순
+  if(q) list=list.filter(s=>s.n.toLowerCase().includes(q));
+  sDrop.innerHTML = list.length
+    ? list.map(s=>`<button onclick="pickSchool('${s.n}')"><span>${s.n}</span><span class="rk">탄소배출 전국 ${rankMap[s.n]}위</span></button>`).join('')
+    : `<button disabled style="color:var(--ink-soft)">검색 결과가 없습니다</button>`;
+  sDrop.classList.add('open');
+}
+sInput.addEventListener('input',renderSearchList);
+sInput.addEventListener('focus',renderSearchList);
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.searchwrap')) sDrop.classList.remove('open');
+});
+function pickSchool(name){
+  sDrop.classList.remove('open'); sInput.value='';
+  if(!mySchool){ setMySchool(name); }
+  openDetail(name);
+}
+function setMySchool(name){
+  mySchool=name;
+  const chip=document.getElementById('myChip');
+  document.getElementById('myChipName').textContent='우리 학교: '+name;
+  chip.classList.add('on');
+  toast(`'${name}'을(를) 우리 학교로 설정했어요`);
+}
+function clearMySchool(e){
+  e.stopPropagation(); mySchool=null;
+  document.getElementById('myChip').classList.remove('on');
+  if(document.getElementById('page-compare').classList.contains('active')) renderCompare();
+}
+function ctaClick(){
+  if(mySchool){ go('compare'); }
+  else{ sInput.focus(); toast('먼저 검색창에서 우리 학교를 선택해 주세요'); }
+}
 
-        // --- Helpers ---
-        function getIcon(n) { if(n.includes("기숙사"))return "fa-bed"; if(n.includes("도서관"))return "fa-book-open"; if(n.includes("과학")||n.includes("생명"))return "fa-flask"; if(n.includes("공학"))return "fa-microchip"; return "fa-building-columns"; }
-        function populateDropdown() { const s=document.getElementById('globalSearch'); [...buildingDB].sort((a,b)=>a.name.localeCompare(b.name)).forEach(b=>{const o=document.createElement('option');o.value=b.name;o.text=b.name;s.appendChild(o)}); }
-        function scrollToBuilding(n){ if(!n)return; switchPage('dashboard'); setTimeout(()=>{const t=document.querySelector(`div[data-id="${n}"]`); if(t)t.scrollIntoView({behavior:'smooth',block:'center'});},100);}
-        function populateAISelect(){const s=document.getElementById('aiBuildingSelect');buildingDB.forEach((b,i)=>{const o=document.createElement('option');o.value=i;o.text=b.name;s.appendChild(o)});}
-        async function generateAIStrategy() {
-            document.getElementById('aiLoading').classList.remove('hidden'); document.getElementById('aiOutput').classList.add('hidden');
-            setTimeout(()=>{ document.getElementById('aiNudgeText').innerText="강의실 입구에 '오늘 우리 건물의 소등왕' 게시판을 운영하여 소등 참여를 독려해보세요."; document.getElementById('aiSloganText').innerText="지구를 식히는 1분, 소등에서 시작됩니다."; document.getElementById('aiLoading').classList.add('hidden'); document.getElementById('aiOutput').classList.remove('hidden'); }, 1200);
-        }
-        function filterGrid(c) { renderGrid(c==='all'?buildingDB:buildingDB.filter(b=>b.cat===c)); document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active','bg-white','shadow-sm')); event.target.classList.add('active','bg-white','shadow-sm'); }
-    </script>
+/* ---------- 비교 페이지 ---------- */
+function setTab(t){ curTab=t; if(t==='energy'&&curFilter==='total') curFilter='percap'; if(t==='carbon'&&!['total','percap','perarea'].includes(curFilter)) curFilter='total'; renderCompare(); }
+function setFilter(f){ curFilter=f; renderCompare(); }
+function setRegion(r){ curRegion=r; renderCompare(); }
+function renderCompare(){
+  document.getElementById('tab-carbon').classList.toggle('on',curTab==='carbon');
+  document.getElementById('tab-energy').classList.toggle('on',curTab==='energy');
+  // 필터: 탄소=총/1인당/면적당, 에너지=1인당/면적당 (기획안 3-2)
+  const defs = curTab==='carbon'
+    ? [['total','총배출량'],['percap','1인당'],['perarea','면적당']]
+    : [['percap','1인당'],['perarea','면적당']];
+  if(!defs.some(d=>d[0]===curFilter)) curFilter=defs[0][0];
+  document.getElementById('filterChips').innerHTML=defs.map(([k,l])=>
+    `<button class="chip ${curFilter===k?'on':''}" onclick="setFilter('${k}')">${l}</button>`).join('');
+  const unit=unitOf(curTab,curFilter);
+  document.getElementById('rankUnit').textContent='단위: '+unit;
+  // 권역별 보기 (수도권/비수도권 이분 대신 중립적 권역 구분)
+  const regions=['all','수도권','강원권','충청권','호남권','영남권'];
+  document.getElementById('regionChips').innerHTML=regions.map(r=>
+    `<button class="chip ${curRegion===r?'on':''}" onclick="setRegion('${r}')">${r==='all'?'전체 권역':r}</button>`).join('');
+  document.getElementById('perAreaNote').style.display = curFilter==='perarea' ? 'block' : 'none';
+
+  const pool=SCHOOLS.filter(s=>curRegion==='all'||s.r===curRegion);
+  const rows=pool.map(s=>({s,v:metricVal(s,curTab,curFilter)})).sort((a,b)=>a.v-b.v);
+  const max=Math.max(...rows.map(r=>r.v));
+  const list=document.getElementById('rankList');
+  list.innerHTML=rows.map((r,i)=>{
+    const mine=r.s.n===mySchool?' mine':'';
+    const valTxt = curFilter==='total'
+      ? fmt(Math.round(r.v)) : (r.v>=100?fmt(Math.round(r.v)):fmt2(r.v));
+    return `<div class="rankrow${mine}" onclick="openDetail('${r.s.n}')">
+      <div class="num">${i+1}</div>
+      <div class="name" title="${r.s.n}">${r.s.d}</div>
+      <div class="barcell"><div class="barfill" style="width:0%" data-w="${(r.v/max*100).toFixed(1)}"></div></div>
+      <div class="val">${valTxt}</div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    list.querySelectorAll('.barfill').forEach(b=>b.style.width=b.dataset.w+'%');
+  }));
+  // 우리 학교로 스크롤 힌트
+  const mine=list.querySelector('.rankrow.mine');
+  if(mine) setTimeout(()=>mine.scrollIntoView({block:'center',behavior:'smooth'}),350);
+}
+function downloadCSV(){
+  const unit=unitOf(curTab,curFilter);
+  let csv='\uFEFF순위,기관명,값('+unit+'),권역,제도유형,총구성원수(명),연면적(㎡)\n';
+  const rows=SCHOOLS.filter(s=>curRegion==='all'||s.r===curRegion).map(s=>({s,v:metricVal(s,curTab,curFilter)})).sort((a,b)=>a.v-b.v);
+  rows.forEach((r,i)=>{csv+=`${i+1},${r.s.n},${r.v.toFixed(2)},${r.s.r},${instName(r.s.s)},${r.s.p},${r.s.a}\n`;});
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`KUCE_${curTab==='carbon'?'탄소배출량':'에너지사용량'}_${curFilter}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('CSV 파일을 다운로드했어요');
+}
+function instName(s){return s==='ETS'?'배출권거래제':s==='TMS'?'목표관리제':'미포함';}
+
+/* ---------- 상세 페이지 ---------- */
+function openDetail(name){
+  curSchool=SCHOOLS.find(s=>s.n===name);
+  if(!curSchool) return;
+  dTab='carbon';
+  renderDetail();
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function rankOf(s,tab='carbon'){
+  const sorted=[...SCHOOLS].sort((a,b)=>metricVal(a,tab,'total')-metricVal(b,tab,'total'));
+  return sorted.findIndex(x=>x.n===s.n)+1;
+}
+function renderDetail(){
+  const s=curSchool;
+  document.getElementById('crumbSchool').textContent=s.n;
+  document.getElementById('dName').textContent=s.n;
+  const rk=rankOf(s,'carbon');
+  document.getElementById('dBadge').innerHTML=`전국 ${rk}위 <small>/ ${SCHOOLS.length}개교 · 탄소배출량 낮은 순</small>`;
+
+  const cChg=chg(s.c), eChg=chg(s.e);
+  const dev = s.b>0 ? s.c[LAST]-s.b : null;               // 기준대비 증감량
+  const devPct = s.b>0 ? (s.c[LAST]-s.b)/s.b*100 : null;  // 기준대비 증감률
+  document.getElementById('dKpis').innerHTML=`
+    <div class="card kpi"><div class="k-label">탄소배출량 (2026)</div>
+      <div class="k-val">${fmt(s.c[LAST])}<small>tCO₂e</small></div>
+      <div class="k-chg">${deltaHTML(cChg)} <span class="muted">전년 대비</span></div></div>
+    <div class="card kpi"><div class="k-label">에너지사용량 (2026)</div>
+      <div class="k-val">${fmt(s.e[LAST])}<small>TJ</small></div>
+      <div class="k-chg">${deltaHTML(eChg)} <span class="muted">전년 대비</span></div></div>
+    <div class="card kpi"><div class="k-label">1인당 탄소배출량</div>
+      <div class="k-val">${fmt1(s.c[LAST]/s.p*1000)}<small>kgCO₂e/명</small></div>
+      <div class="k-chg"><span class="muted">재학생+전임교원+직원 ${fmt(s.p)}명 기준</span></div></div>
+    <div class="card kpi"><div class="k-label">기준배출량 대비</div>
+      <div class="k-val">${dev===null?'—':(dev<=0?'−':'+')+fmt(Math.abs(Math.round(dev)))}<small>${dev===null?'기준 없음':'tCO₂e'}</small></div>
+      <div class="k-chg">${devPct===null?'<span class="muted">제도 미포함</span>':deltaHTML(devPct)+' <span class="muted">'+(dev<=0?'감축 여유분 확보':'초과 배출')+'</span>'}</div></div>`;
+
+  setDetailTab(dTab);
+  renderSimilar();
+}
+function setDetailTab(t){
+  dTab=t;
+  ['carbon','energy','info'].forEach(k=>
+    document.getElementById('dtab-'+k).classList.toggle('on',k===t));
+  const chartArea=document.getElementById('dChartArea');
+  const infoArea=document.getElementById('dInfoArea');
+  if(t==='info'){
+    chartArea.style.display='none'; infoArea.style.display='grid';
+    renderInfo();
+  }else{
+    chartArea.style.display='block'; infoArea.style.display='none';
+    drawLine(chartArea, t==='carbon'?curSchool.c:curSchool.e,
+      t==='carbon'?'탄소배출량 (tCO₂e)':'에너지사용량 (TJ)');
+  }
+}
+function renderInfo(){
+  const s=curSchool;
+  const items=[
+    ['제도유형',instName(s.s)],
+    ['권역',s.r],
+    ['총구성원수 (재학생+전임교원+직원, 대학알리미 기준)',fmt(s.p)+'명'],
+    ['캠퍼스 연면적',fmt(s.a)+'㎡'],
+    ['기준배출량',s.b>0?fmt(s.b)+' tCO₂e':'해당 없음'],
+    ['기준대비 증감량',s.b>0?((s.c[LAST]-s.b<=0?'−':'+')+fmt(Math.abs(s.c[LAST]-s.b))+' tCO₂e'):'—'],
+    ['기준대비 증감률',s.b>0?((s.c[LAST]-s.b)/s.b*100).toFixed(1)+'%':'—'],
+    ['감축 여유분',s.b>0&&s.c[LAST]<=s.b?fmt(s.b-s.c[LAST])+' tCO₂e':'—'],
+    ['초과 배출량',s.b>0&&s.c[LAST]>s.b?fmt(s.c[LAST]-s.b)+' tCO₂e':'없음'],
+    ['탄소배출권 구매액(연간)',s.k>0?fmt(s.k)+'백만 원':'—'],
+    ['면적당 탄소배출량',fmt2(s.c[LAST]/s.a*1000)+' kgCO₂e/㎡'],
+    ['면적당 에너지사용량',fmt2(s.e[LAST]/s.a*1000)+' GJ/㎡'],
+    ['1인당 에너지사용량',fmt1(s.e[LAST]/s.p*1000)+' GJ/명'],
+    ['1인당 감축 포인트 ('+YEARS[0]+'→'+YEARS[LAST]+')',(()=>{const p0=s.c[0]/s.p,p1=s.c[LAST]/s.p;const d=(p0-p1)/p0*100;return (d>=0?'−':'+')+Math.abs(d).toFixed(1)+'% 누적 감축';})()],
+  ];
+  document.getElementById('dInfoArea').innerHTML=items.map(([l,v])=>
+    `<div class="card inforow"><span class="il">${l}</span><span class="iv">${v}</span></div>`).join('')
+    +`<div class="muted" style="grid-column:1/-1">※ 면적당 지표는 캠퍼스 특성(호수·부속시설·병원 등)에 따라 왜곡될 수 있습니다. · 1인당 지표의 분모는 재학생+전임교원+직원 합계입니다.</div>`;
+}
+function drawLine(container,arr,label){
+  const W=760,H=280,P={l:64,r:20,t:24,b:34};
+  const min=Math.min(...arr)*0.985, max=Math.max(...arr)*1.015;
+  const x=i=>P.l+(W-P.l-P.r)*i/(arr.length-1);
+  const y=v=>P.t+(H-P.t-P.b)*(1-(v-min)/(max-min));
+  let grid='',labels='';
+  for(let g=0;g<=3;g++){
+    const gv=min+(max-min)*g/3, gy=y(gv);
+    grid+=`<line x1="${P.l}" y1="${gy}" x2="${W-P.r}" y2="${gy}" stroke="#24436B" stroke-width="1.5"/>`;
+    labels+=`<text x="${P.l-8}" y="${gy+4}" text-anchor="end" font-size="11" fill="#9FB4CC">${fmt(Math.round(gv))}</text>`;
+  }
+  const pts=arr.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const area=`${P.l},${H-P.b} ${pts} ${W-P.r},${H-P.b}`;
+  let dots='',xls='';
+  arr.forEach((v,i)=>{
+    dots+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===LAST?6:4.5}" fill="${i===LAST?'#F5C84B':'#6FB0E8'}" stroke="#0E2A4E" stroke-width="2"><link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<title>${YEARS[i]}년: ${fmt(v)}</title></circle>`;
+    xls+=`<text x="${x(i)}" y="${H-P.b+20}" text-anchor="middle" font-size="11.5" fill="#9FB4CC">${YEARS[i]}</text>`;
+  });
+  const lastV=arr[LAST];
+  container.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <b style="font-size:14.5px">연도별 ${label}</b>
+      <span class="muted">2026년: <b style="color:var(--primary)">${fmt(lastV)}</b></span>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="연도별 ${label} 추이">
+      ${grid}${labels}
+      <polygon points="${area}" fill="rgba(111,176,232,.15)"/>
+      <polyline points="${pts}" fill="none" stroke="#6FB0E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}${xls}
+    </svg>
+    <div class="muted" style="margin-top:6px">점에 마우스를 올리면 연도별 수치를 확인할 수 있어요.</div>
+    ${seasonHTML(arr[LAST],label)}`;
+}
+
+/* 계절별 분포(냉난방 반영 샘플 — 공식 월별 자료 확보 시 실데이터로 교체) */
+function seasonHTML(annual,label){
+  const seasons=[['봄',0.21],['여름',0.29],['가을',0.20],['겨울',0.30]];
+  const max=Math.max(...seasons.map(s=>s[1]));
+  const bars=seasons.map(([nm,sh])=>{
+    const v=annual*sh;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div style="font-size:12px;font-weight:800;color:#fff">${fmt(Math.round(v))}</div>
+      <div style="width:70%;max-width:56px;height:${(sh/max*90).toFixed(0)}px;border-radius:8px 8px 4px 4px;
+        background:${(nm==='여름'||nm==='겨울')?'linear-gradient(180deg,#FFD86B,#E0A428)':'linear-gradient(180deg,#6FB0E8,#3E7DC0)'}"></div>
+      <div style="font-size:12px;color:var(--ink-soft)">${nm}</div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+      <b style="font-size:14px">계절별 ${label.split(' ')[0]} 분포 <span class="muted">(${YEARS[LAST]}년)</span></b>
+      <span class="muted">냉·난방 수요로 여름·겨울이 높게 나타납니다</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px">${bars}</div>
+    <div class="muted" style="margin-top:8px">※ 계절 분포는 샘플 추정치입니다. 월별 공식 자료 확보 시 실측값으로 교체 예정.</div>
+  </div>`;
+}
+
+function renderSimilar(){
+  const s=curSchool;
+  const sims=[...SCHOOLS].filter(x=>x.n!==s.n)
+    .sort((a,b)=>Math.abs(a.p-s.p)-Math.abs(b.p-s.p)).slice(0,3);
+  document.getElementById('dSimilar').innerHTML=sims.map(x=>{
+    const r=rankOf(x,'carbon');
+    return `<div class="card simcard" onclick="openDetail('${x.n}')">
+      <div class="sn">${x.d} <span class="muted">· 전국 ${r}위</span></div>
+      <div class="sv">구성원 ${fmt(x.p)}명 · ${fmt(x.c[LAST])} tCO₂e</div>
+    </div>`;
+  }).join('');
+}
+function shareSchool(){
+  const s=curSchool, r=rankOf(s,'carbon');
+  const txt=`[KUCE] ${s.n} — 대학 탄소배출량 전국 ${r}위 / ${SCHOOLS.length}개교 · 2026년 ${fmt(s.c[LAST])} tCO₂e (전년 대비 ${chg(s.c).toFixed(1)}%)`;
+  if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>toast('공유 문구를 복사했어요! SNS에 붙여넣기 하세요 📋')); }
+  else toast(txt);
+}
+function compareWithOthers(){
+  if(curSchool && !mySchool) setMySchool(curSchool.n);
+  else if(curSchool) mySchool=curSchool.n, setMySchool(curSchool.n);
+  go('compare');
+}
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+
+/* ---------- 전국 지도 ---------- */
+const COORDS={ // [위도, 경도]
+ "강원대학교":[37.869,127.744],"경북대학교":[35.890,128.612],"경상국립대학교":[35.154,128.098],
+ "서울대학교":[37.459,126.952],"부산대학교":[35.233,129.079],"전남대학교":[35.176,126.906],
+ "전북대학교":[35.847,127.129],"충남대학교":[36.368,127.344],"충북대학교":[36.628,127.457],
+ "학교법인 가톨릭학원":[37.487,126.801],"학교법인 건국대학교":[37.540,127.079],
+ "학교법인 경희학원":[37.596,127.052],"학교법인 계명대학교":[35.855,128.489],
+ "학교법인 고려중앙학원":[37.589,127.032],"학교법인 성균관대학":[37.588,126.993],
+ "학교법인 연세대학교":[37.566,126.938],"학교법인 영남학원":[35.836,128.754],
+ "학교법인 이화학당":[37.562,126.947],"학교법인 중앙대학교":[37.505,126.957],
+ "학교법인 포항공과대학교":[36.013,129.325],"학교법인 한양학원":[37.557,127.045]
+};
+// 간이 해안선 (경도,위도) — 스타일화된 대한민국 윤곽
+const COAST=[
+ [126.68,37.80],[127.05,38.30],[127.80,38.32],[128.35,38.60],[128.60,38.58],
+ [128.90,38.10],[129.10,37.60],[129.35,37.05],[129.42,36.55],[129.57,36.05],
+ [129.45,35.55],[129.25,35.30],[129.00,35.05],[128.60,34.90],[128.10,34.85],
+ [127.70,34.60],[127.30,34.45],[126.85,34.30],[126.50,34.30],[126.28,34.70],
+ [126.40,35.10],[126.68,35.60],[126.52,36.00],[126.48,36.70],[126.15,36.75],
+ [126.35,37.00],[126.62,37.20],[126.55,37.55],[126.68,37.80]
+];
+function projFactory(lngMin,lngMax,latMin,latMax,W,H,pad){
+  return ([lat,lng])=>[
+    pad+(lng-lngMin)/(lngMax-lngMin)*(W-2*pad),
+    pad+(latMax-lat)/(latMax-latMin)*(H-2*pad)
+  ];
+}
+let mapSelected=null;
+let mapView='national';   // national | seoul
+const SEOUL_B={latMin:37.05,latMax:37.75,lngMin:126.40,lngMax:127.30};
+const inSeoulArea=n=>{const[la,lo]=COORDS[n];
+  return la>SEOUL_B.latMin&&la<SEOUL_B.latMax&&lo>SEOUL_B.lngMin&&lo<SEOUL_B.lngMax;};
+
+/* ---- 라벨 자동 배치: 우→좌→위→아래 순으로 빈 자리를 찾고, 없으면 아래로 밀어냄 ---- */
+function estW(t,fs){return t.length*fs+6;}
+function placeLabels(nodes,W,H,fs){
+  const placed=[];
+  const boxOf=(lx,ly,w,anchor)=>{
+    const x0=anchor==='start'?lx:anchor==='end'?lx-w:lx-w/2;
+    return {x0,x1:x0+w,y0:ly-fs+1,y1:ly+3};
+  };
+  const clash=b=>placed.some(p=>!(b.x1<p.x0||b.x0>p.x1||b.y1<p.y0||b.y0>p.y1))
+    || b.x0<2||b.x1>W-2||b.y0<2||b.y1>H-2;
+  const sorted=[...nodes].sort((a,b)=>a.y-b.y);
+  const out=[];
+  for(const nd of sorted){
+    const w=estW(nd.text,fs);
+    const cands=[
+      {lx:nd.x+10,ly:nd.y+4,anchor:'start'},
+      {lx:nd.x-10,ly:nd.y+4,anchor:'end'},
+      {lx:nd.x,   ly:nd.y-12,anchor:'middle'},
+      {lx:nd.x,   ly:nd.y+20,anchor:'middle'}
+    ];
+    let pick=null;
+    for(const c of cands){ if(!clash(boxOf(c.lx,c.ly,w,c.anchor))){pick=c;break;} }
+    if(!pick){
+      pick={lx:nd.x+10,ly:nd.y+4,anchor:'start'};
+      let tries=0;
+      while(clash(boxOf(pick.lx,pick.ly,w,pick.anchor))&&tries<14){pick.ly+=fs+3;tries++;}
+    }
+    placed.push(boxOf(pick.lx,pick.ly,w,pick.anchor));
+    out.push({...nd,...pick,far:Math.abs(pick.ly-nd.y)>16||Math.abs(pick.lx-nd.x)>60});
+  }
+  return out;
+}
+function labelSVG(L,color){
+  let s='';
+  if(L.far){ // 라벨이 멀리 밀렸으면 연결선 표시
+    const tx=L.anchor==='start'?L.lx-3:L.anchor==='end'?L.lx+3:L.lx;
+    s+=`<line x1="${L.x}" y1="${L.y}" x2="${tx}" y2="${L.ly-4}" stroke="${color}" stroke-width=".7" opacity=".5"/>`;
+  }
+  s+=`<text class="maplabel" x="${L.lx.toFixed(1)}" y="${L.ly.toFixed(1)}" text-anchor="${L.anchor}" font-size="${L.fs}" fill="${color}">${L.text}</text>`;
+  return s;
+}
+function toggleMapView(v){ mapView=v; renderMap(); }
+
+function renderMap(){
+  const el=document.getElementById('koreaMap');
+  el.innerHTML = mapView==='seoul' ? seoulSVG() : nationalSVG();
+  renderMapPanel();
+}
+
+/* ---- 전국 뷰 ---- */
+function nationalSVG(){
+  const W=380,H=500,pad=24,fs=10.5;
+  const P=projFactory(125.6,129.9,33.0,38.8,W,H,pad);
+  const path=COAST.map((c,i)=>(i?'L':'M')+P([c[1],c[0]]).map(v=>v.toFixed(1)).join(',')).join(' ')+' Z';
+  const jeju=P([33.38,126.53]);
+  let dots='',nodes=[];
+  for(const s of SCHOOLS){
+    const[x,y]=P(COORDS[s.n]);
+    const sel=mapSelected===s.n;
+    const seoul=inSeoulArea(s.n);
+    dots+=`<circle class="mapdot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sel?8:(seoul?3.5:7)}"
+      fill="${sel?'#F5C84B':(s.n===mySchool?'#F5C84B':'#6FB0E8')}" stroke="#0E2A4E" stroke-width="1.5"
+      onclick="${seoul?"toggleMapView('seoul')":`selectOnMap('${s.n}')`}"><title>${s.n}</title></circle>`;
+    if(!seoul) nodes.push({x,y,text:s.d,fs,sel});
+  }
+  const labels=placeLabels(nodes,W,H,fs).map(L=>labelSVG(L,L.sel?'#F5C84B':'#9FB4CC')).join('');
+  const b1=P([SEOUL_B.latMax,SEOUL_B.lngMin]), b2=P([SEOUL_B.latMin,SEOUL_B.lngMax]);
+  return `
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="전국 대학 지도">
+    <path d="${path}" fill="#16395F" stroke="#3E6493" stroke-width="1.5"/>
+    <ellipse cx="${jeju[0]}" cy="${jeju[1]}" rx="20" ry="9" fill="#16395F" stroke="#3E6493" stroke-width="1.5"/>
+    ${dots}${labels}
+    <g class="mapdot" onclick="toggleMapView('seoul')" style="cursor:pointer">
+      <rect x="${b1[0].toFixed(1)}" y="${b1[1].toFixed(1)}"
+        width="${(b2[0]-b1[0]).toFixed(1)}" height="${(b2[1]-b1[1]).toFixed(1)}" rx="8"
+        fill="rgba(245,200,75,.10)" stroke="#F5C84B" stroke-width="1.4" stroke-dasharray="5 3"/>
+      <text x="${((b1[0]+b2[0])/2).toFixed(1)}" y="${(b1[1]-7).toFixed(1)}" text-anchor="middle"
+        font-size="11.5" font-weight="800" fill="#F5C84B">수도권 🔍 클릭하여 확대</text>
+    </g>
+  </svg>`;
+}
+
+/* ---- 수도권 확대 뷰 ---- */
+function seoulSVG(){
+  const W=520,H=430,pad=46,fs=11.5;
+  const P=projFactory(126.72,127.16,37.42,37.66,W,H,pad);
+  let dots='',nodes=[];
+  for(const s of SCHOOLS){
+    if(!inSeoulArea(s.n)) continue;
+    const[x,y]=P(COORDS[s.n]);
+    const sel=mapSelected===s.n;
+    dots+=`<circle class="mapdot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sel?10:7.5}"
+      fill="${sel?'#F5C84B':(s.n===mySchool?'#F5C84B':'#6FB0E8')}" stroke="#0E2A4E" stroke-width="1.5"
+      onclick="selectOnMap('${s.n}')"><title>${s.n}</title></circle>`;
+    nodes.push({x,y,text:s.d,fs,sel});
+  }
+  const labels=placeLabels(nodes,W,H,fs).map(L=>labelSVG(L,L.sel?'#F5C84B':'#C7D6E8')).join('');
+  return `
+  <div style="padding:6px 12px 4px">
+    <button class="ghost-btn" onclick="toggleMapView('national')">← 전국 지도로 돌아가기</button>
+  </div>
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="수도권 대학 확대 지도">
+    <rect x="6" y="6" width="${W-12}" height="${H-12}" rx="16" fill="#10315B" stroke="#3E6493" stroke-width="1.5"/>
+    <text x="24" y="34" font-size="14" font-weight="900" fill="#F5C84B">수도권</text>
+    ${dots}${labels}
+  </svg>`;
+}
+function selectOnMap(name){ mapSelected=name; renderMap(); }
+function renderMapPanel(){
+  const p=document.getElementById('mapPanel');
+  if(!mapSelected){
+    p.innerHTML='<div class="muted" style="padding:18px;text-align:center">지도에서 대학을 선택해 주세요 ⚡</div>';
+    return;
+  }
+  const s=SCHOOLS.find(x=>x.n===mapSelected);
+  const r=rankOf(s,'carbon');
+  p.innerHTML=`<div class="mp-in">
+    <div class="mp-name">${s.n}</div>
+    <div class="mp-rank">전국 ${r}위 / ${SCHOOLS.length}개교</div>
+    <div class="mp-stat">
+      탄소배출량 <b>${fmt(s.c[LAST])} tCO₂e</b> (${chg(s.c).toFixed(1)}%)<br>
+      에너지사용량 <b>${fmt(s.e[LAST])} TJ</b><br>
+      1인당 배출량 <b>${fmt1(s.c[LAST]/s.p*1000)} kgCO₂e/명</b>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="pill-btn" style="padding:9px 18px;font-size:13.5px" onclick="openDetail('${s.n}')">상세 페이지 보기 →</button>
+      <button class="ghost-btn" onclick="setMySchool('${s.n}');renderMap()">우리 학교로 설정</button>
+    </div>
+  </div>`;
+}
+
+renderHome();
+</script>
 </body>
 </html>
